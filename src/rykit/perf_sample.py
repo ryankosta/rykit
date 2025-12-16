@@ -141,13 +141,14 @@ def add_zeroes_to_eventcode(eventcode: str, zeroct: int):
     raw_hex_str = eventcode.split("0x")[1]
     return "0x" + ("0" * zeroct) + raw_hex_str
 
-def perf_sample_core_events(cmd: str, core_events: List[str]) -> Dict[str, int]:
+def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) -> Dict[str, int]:
     """
     Run perf sampling for core events.
 
     Args:
         cmd (str): Command to run under perf.
         core_events (List[str]): List of core event names.
+        sudo (bool): Whether to run command as sudo
 
     Returns:
         Dict[str,int]: Mapping of event name -> event counter value.
@@ -156,17 +157,21 @@ def perf_sample_core_events(cmd: str, core_events: List[str]) -> Dict[str, int]:
     event_flags = [f"-e {e}" for e in core_events]
     event_flag_str = " ".join(event_flags)
 
-    output = run_command_read_stderr(f"sudo perf stat {event_flag_str} {cmd}")
+    full_cmd = f"perf stat {event_flag_str} {cmd}"
+    if sudo:
+        full_cmd = "sudo " + full_cmd
+    output = run_command_read_stderr(full_cmd)
     return interpret_core_events(output, core_events)
-def perf_sample_core_event(cmd: str, core_event: str) -> int:
+def perf_sample_core_event(cmd: str, core_event: str, sudo:bool=True) -> int:
     """
     Run perf sampling for core event.
 
     Args:
         cmd (str): Command to run under perf.
         core_event (str):  core event name.
+        sudo (bool): Whether to run command as sudo
 
     Returns:
         int: core event value 
     """
-    return perf_sample_core_events(cmd,[core_event])[core_event]
+    return perf_sample_core_events(cmd,[core_event],sudo=sudo)[core_event]
