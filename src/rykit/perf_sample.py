@@ -24,6 +24,7 @@ def set_perf_event_paranoid(level: int):
     assert -1 <= level and level <= 3, f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
     cmd = f"sudo sysctl -w kernel.perf_event_paranoid={level}"
     run_command_read_stdout(cmd)
+
 def get_perf_event_paranoid() -> int:
     """
     Returns the current kernel perf_event_paranoid level
