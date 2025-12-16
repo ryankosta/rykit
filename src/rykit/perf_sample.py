@@ -24,6 +24,15 @@ def set_perf_event_paranoid(level: int):
     assert -1 <= level and level <= 3, f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
     cmd = f"sudo sysctl -w kernel.perf_event_paranoid={level}"
     run_command_read_stdout(cmd)
+def get_perf_event_paranoid() -> int:
+    """
+    Returns the current kernel perf_event_paranoid level
+    """
+    try:
+        with open("/proc/sys/kernel/perf_event_paranoid", "r") as f:
+            return int(f.read().strip())
+    except Exception as e:
+        raise RuntimeError(f"Failed to read perf_event_paranoid: {e}")
 
 
 def interpret_umask(binval: str) -> str:
