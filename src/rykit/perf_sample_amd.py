@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 from rykit.perf_sample import perf_sample_core_events,interpret_umask
 def perf_sample_amd_uncore_event_many(
-    cmd: str, unc_events: List[Tuple[str, str]]
+        cmd: str, unc_events: List[Tuple[str, str]], sudo: bool=True
 ) -> Dict[str, int]:
     """
     Run perf sampling for multiple uncore events.
@@ -14,4 +14,4 @@ def perf_sample_amd_uncore_event_many(
         Dict[str,Dict[str,int]]: Mapping of event code -> event counter value.
     """
     events = [f"amd_df/event={event},umask={interpret_umask(umask)}/" for event,umask in unc_events]
-    return perf_sample_core_events(cmd,events)
+    return perf_sample_core_events(cmd,events,sudo=sudo)
