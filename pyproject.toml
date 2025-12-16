@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Ryan Kosta", email = "rkosta@ucsd.edu" }
 ]
+license = { text = "MIT" }
 requires-python = ">=3.13"
 dependencies = []
 
