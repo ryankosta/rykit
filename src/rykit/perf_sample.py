@@ -2,6 +2,29 @@ from rykit.cmd import run_command_read_stdout
 from rykit.cmd import run_command_read_stderr
 from typing import List, Dict 
 
+def set_perf_event_paranoid(level: int):
+    """
+    Sets the kernel's perf_event_paranoid level.
+
+    The perf_event_paranoid setting controls the restrictions on
+    performance monitoring for non-root users:
+        -1 : No restrictions
+         0 : Normal access, but system-wide tracepoints may be restricted
+         1 : Restricted access to CPU performance events
+         2 : Disallow CPU performance events for unprivileged users
+         3 : Maximum restriction (default on many systems)
+
+    Args:
+        level (int): The desired paranoid level (-1 to 3).
+
+    Raises:
+        AssertionError: If level is not an int or not in the allowed range.
+    """
+    assert type(level) == int
+    assert -1 <= level and level <= 3, f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
+    cmd = f"sudo sysctl -w kernel.perf_event_paranoid={level}"
+    run_command_read_stdout(cmd)
+
 
 def interpret_umask(binval: str) -> str:
     """
