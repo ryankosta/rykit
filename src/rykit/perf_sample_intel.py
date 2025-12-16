@@ -1,5 +1,3 @@
-import subprocess
-import glob
 from typing import Dict, List, Tuple
 from rykit.perf_sample import interpret_umask, add_zeroes_to_eventcode
 from rykit.intel_tools import get_cha_count
