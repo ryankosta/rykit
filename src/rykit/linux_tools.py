@@ -55,6 +55,9 @@ def numactl_pin_mem(node:int) -> str:
 
 def numactl_pin_cpu(cpus:List[int],mem_node:Optional[int]) -> str:
     assert len(cpus) > 0
+    if shutil.which('numactl') is None:
+        raise RuntimeError("numactl should be installed")
+
     if mem_node is None:
         mem_node = get_socket_for_cpu(cpus[0]) 
     cpustr = ",".join([str(x) for x in cpus]) 
