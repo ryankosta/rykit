@@ -1,5 +1,6 @@
-from typing import Dict,List
+from typing import Dict,List,Optional
 from rykit.cmd import run_command_read_stdout
+import shutil
 def lscpu() -> Dict[str, str]:
     """
     Parse the output of `lscpu` into a dictionary.
@@ -42,6 +43,22 @@ def normalize(x: str, units: Dict[str, int], default: str):
     raise ValueError(
         f"{x} did not contain a valid unit out of choices {units_longest_first}"
     )
+def numactl_pin(node:int) -> str:
+    if shutil.which('numactl') is None:
+        raise RuntimeError("numactl should be installed")
+    return f"numactl --cpunodebind={node} --membind={node} "
+def numactl_pin_mem(node:int) -> str:
+    if shutil.which('numactl') is None:
+        raise RuntimeError("numactl should be installed")
+    return f"numactl --membind={node} "
+
+
+def numactl_pin_cpu(cpus:List[int],mem_node:Optional[int]) -> str:
+    assert len(cpus) > 0
+    if mem_node is None:
+        mem_node = get_socket_for_cpu(cpus[0]) 
+    cpustr = ",".join([str(x) for x in cpus]) 
+    return f"numactl --membind={mem_node} --physcpubind={cpustr} " 
 
 
 def lscpu_cache() -> Dict[str, Dict[str, str]]:
@@ -83,6 +100,9 @@ def parse_range_list(s: str) -> List[int]:
             result.append(int(part))
     return result
 
+def get_socket_ct():
+    info = lscpu()
+    return int(info["NUMA node(s)"])
 
 def get_socket(skt: int) -> List[int]:
     """
@@ -98,11 +118,13 @@ def get_socket(skt: int) -> List[int]:
         AssertionError: If the socket index is invalid.
     """
     assert skt >= 0
-
+    assert skt < get_socket_ct()
     info = lscpu()
-    node_ct = int(info["NUMA node(s)"])
-
-    assert skt < node_ct
     nodestr = info[f"NUMA node{skt} CPU(s)"]
 
     return parse_range_list(nodestr)
+def get_socket_for_cpu(cpu:int):
+    for socket in range(get_socket_ct()):
+        if cpu in get_socket(socket):
+            return socket
+    raise ValueError(f"{cpu} not in any socket")
