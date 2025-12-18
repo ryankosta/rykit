@@ -44,16 +44,58 @@ def normalize(x: str, units: Dict[str, int], default: str):
         f"{x} did not contain a valid unit out of choices {units_longest_first}"
     )
 def numactl_pin(node:int) -> str:
+    """
+    Generates a command which binds CPU execution and memory allocation
+    to a single NUMA node.
+
+    Args:
+        node (int): NUMA node to bind to 
+
+    Returns:
+        str: numactl command prefix to prepend to a command.
+
+    Raises:
+        RuntimeError: If numactl is not installed.
+    """
     if shutil.which('numactl') is None:
         raise RuntimeError("numactl should be installed")
     return f"numactl --cpunodebind={node} --membind={node} "
 def numactl_pin_mem(node:int) -> str:
+    """
+    Generates a command which binds memory allocation to a NUMA node
+    without restricting CPU placement.
+
+    Args:
+        node (int): NUMA node for memory allocation
+
+    Returns:
+        str: numactl command prefix to prepend to a command.
+
+    Raises:
+        RuntimeError: If numactl is not installed.
+    """
     if shutil.which('numactl') is None:
         raise RuntimeError("numactl should be installed")
     return f"numactl --membind={node} "
 
 
 def numactl_pin_cpu(cpus:List[int],mem_node:Optional[int]) -> str:
+    """
+    Generates a command which binds execution to specific CPUs and
+    binds memory to a NUMA node.
+
+    Args:
+        cpus (List[int]): CPU IDs the process is allowed to run on.
+        mem_node (Optional[int]): NUMA node for memory allocation. If None,
+                                  the NUMA node of cpus[0] is used.
+
+    Returns:
+        str: numactl command prefix to prepend to a command.
+
+    Raises:
+        RuntimeError: If numactl is not installed.
+        AssertionError: If cpus is empty.
+    """
     assert len(cpus) > 0
     if shutil.which('numactl') is None:
         raise RuntimeError("numactl should be installed")
