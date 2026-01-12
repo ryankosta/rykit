@@ -1,6 +1,7 @@
 from rykit.cmd import run_command_read_stdout
 from rykit.cmd import run_command_read_stderr
-from typing import List, Dict 
+from typing import List, Dict, Set
+import os
 
 def set_perf_event_paranoid(level: int):
     """
@@ -24,6 +25,42 @@ def set_perf_event_paranoid(level: int):
     assert -1 <= level and level <= 3, f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
     cmd = f"sudo sysctl -w kernel.perf_event_paranoid={level}"
     run_command_read_stdout(cmd)
+
+EVENT_DIR : str ="/sys/bus/event_source/devices/"
+SOFT_DEVICES : Set[str] = {'software','uprobe','breakpoint','tracepoint','kprobe'}
+
+def get_devices(include_soft_devices=False) -> List[str]:
+    """
+    Returns list of perf event source devices 
+
+    Args:
+        include_soft_devices (bool): If True, include software-based event
+            sources (breakpoint,uprobe, etc); if False, filter them out.
+
+    Returns:
+        List[str]: list of perf event source devices
+    """
+    devices = os.listdir(EVENT_DIR)
+
+    # remove soft devices
+    if not include_soft_devices:
+        devices = [d for d in devices if d not in SOFT_DEVICES]
+
+    return devices
+def get_device_events(device:str) -> List[str]:  
+    """
+    get perf event names for a given device
+
+    Args:
+        device (str): the device to query
+
+    Returns:
+        List[str]: list of perf events
+    """
+    assert device not in SOFT_DEVICES, f"{device} is a soft device, cannot get events for a soft device"
+    assert device in get_devices(), f"{device} is not a valid device"
+    return os.listdir(f"{EVENT_DIR}/{device}/events")
+
 
 def get_perf_event_paranoid() -> int:
     """
