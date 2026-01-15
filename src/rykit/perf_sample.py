@@ -95,12 +95,12 @@ def get_device_field_widths(device: str) -> Dict[str, int]:
     """
     raw_fields = get_device_fields(device)
     fields : Dict[str,int] = {}
-    for field, (_,bit_ranges) in raw_fields.items():
-        lengths : List[int] = [(end-start+1) for (start,end) in bit_ranges]
+    for field, bit_ranges in raw_fields.items():
+        lengths : List[int] = [(end-start+1) for (_,start,end) in bit_ranges]
         fields[field] = sum(lengths)
     return fields
 
-def get_device_fields(device:str) -> Dict[str,Tuple[str,List[Tuple[int,int]]]]:
+def get_device_fields(device:str) -> Dict[str,List[Tuple[str,int,int]]]:
     """
     Reads the format definition files for a specific perf device 
 
@@ -109,8 +109,8 @@ def get_device_fields(device:str) -> Dict[str,Tuple[str,List[Tuple[int,int]]]]:
 
     Returns:
         Dict[str,Tuple[str,List[Tuple[int,int]]]]: A dictionary where keys are field 
-                        names (filenames), and vals are tuple of perf field names
-                        and bitfields within said perf fields
+                        names (filenames), and vals are tuple of ioctl field names
+                        and bitfields within said ioctl fields
 
     Raises:
         FileNotFoundError: If the device or format directory does not exist.
@@ -121,7 +121,7 @@ def get_device_fields(device:str) -> Dict[str,Tuple[str,List[Tuple[int,int]]]]:
     if not os.path.isdir(format_path):
         raise FileNotFoundError(f"Format directory not found at: {format_path}")
 
-    fields : Dict[str,Tuple[str,List[Tuple[int,int]]]] = {}
+    fields : Dict[str,List[Tuple[str,int,int]]] = {}
 
     # Iterate over every file in the format directory
     for field_name in os.listdir(format_path):
@@ -135,15 +135,15 @@ def get_device_fields(device:str) -> Dict[str,Tuple[str,List[Tuple[int,int]]]]:
             # content example: "config:0-7" or "config:0-3,config:8-11"
             content = f.read().strip()
 
-        total_bits = 0
-
         assert content.count(":") > 0, f"bad formatting for device {device}"
         assert content.count(":") < 2, f"bad formatting for device {device}, assumed format field:range,range,range"
         # Split by comma to handle non-contiguous ranges (e.g. "config:0-3,config:8-11")
-        perf_field,range_strs_together = content.split(":",1)
+        ioctl_field,range_strs_together = content.split(":",1)
         range_strs = range_strs_together.split(",")
+
         ranges = [_process_range(range_str) for range_str in range_strs]
-        fields[field_name] = (perf_field,ranges)
+        ranges_with_ioctl_field = [(ioctl_field,start,end) for start,end in ranges]
+        fields[field_name] = ranges_with_ioctl_field
     return fields
 
 
