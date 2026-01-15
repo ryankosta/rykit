@@ -59,7 +59,12 @@ def get_device_events(device:str) -> List[str]:
     """
     assert device not in SOFT_DEVICES, f"{device} is a soft device, cannot get events for a soft device"
     assert device in get_devices(), f"{device} is not a valid device"
-    return os.listdir(f"{EVENT_DIR}/{device}/events")
+    dir_path = f"{EVENT_DIR}/{device}/events"
+    # if there are no events, it will present as an empty directory
+    if os.path.isdir(dir_path):
+        return os.listdir(dir_path)
+    else:
+        return []
 
 def get_device_field_widths(device: str) -> Dict[str, int]:
     """
