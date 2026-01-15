@@ -1,6 +1,6 @@
 from rykit.cmd import run_command_read_stdout
 from rykit.cmd import run_command_read_stderr
-from typing import List, Dict, Set
+from typing import List, Dict, Set,Tuple
 import os
 
 def set_perf_event_paranoid(level: int):
@@ -66,6 +66,17 @@ def get_device_events(device:str) -> List[str]:
     else:
         return []
 
+def _process_range(bit_range:str):
+    if "-" in bit_range:
+        assert bit_range.count("-") == 1
+        start_str, end_str = bit_range.split('-')
+        start, end = int(start_str), int(end_str)
+        if end < start:
+            raise ValueError(f"bit_range '{bit_range}' not valid, end < start")
+    else:
+        start,end = int(bit_range),int(bit_range)
+    return start,end
+
 def get_device_field_widths(device: str) -> Dict[str, int]:
     """
     Reads the format definition files for a specific perf device and calculates
@@ -82,12 +93,35 @@ def get_device_field_widths(device: str) -> Dict[str, int]:
         FileNotFoundError: If the device or format directory does not exist.
         ValueError: If a format file contains invalid syntax.
     """
+    raw_fields = get_device_fields(device)
+    fields : Dict[str,int] = {}
+    for field, (_,bit_ranges) in raw_fields.items():
+        lengths : List[int] = [(end-start+1) for (start,end) in bit_ranges]
+        fields[field] = sum(lengths)
+    return fields
+
+def get_device_fields(device:str) -> Dict[str,Tuple[str,List[Tuple[int,int]]]]:
+    """
+    Reads the format definition files for a specific perf device 
+
+    Args:
+        device (str): The name of the perf device (e.g., 'cpu', 'uncore_imc_0').
+
+    Returns:
+        Dict[str,Tuple[str,List[Tuple[int,int]]]]: A dictionary where keys are field 
+                        names (filenames), and vals are tuple of perf field names
+                        and bitfields within said perf fields
+
+    Raises:
+        FileNotFoundError: If the device or format directory does not exist.
+        ValueError: If a format file contains invalid syntax.
+    """
     format_path = os.path.join(EVENT_DIR, device, "format")
 
     if not os.path.isdir(format_path):
         raise FileNotFoundError(f"Format directory not found at: {format_path}")
 
-    field_widths = {}
+    fields : Dict[str,Tuple[str,List[Tuple[int,int]]]] = {}
 
     # Iterate over every file in the format directory
     for field_name in os.listdir(format_path):
@@ -103,31 +137,14 @@ def get_device_field_widths(device: str) -> Dict[str, int]:
 
         total_bits = 0
 
+        assert content.count(":") > 0, f"bad formatting for device {device}"
+        assert content.count(":") < 2, f"bad formatting for device {device}, assumed format field:range,range,range"
         # Split by comma to handle non-contiguous ranges (e.g. "config:0-3,config:8-11")
-        segments = content.split(',')
-
-        for segment in segments:
-            # Each segment looks like "config:0-7" or "config5:3"
-            if ':' not in segment:
-                continue
-
-            # Discard the register name (config/config1), keep the range
-            _, bit_range = segment.split(':', 1)
-
-            if '-' in bit_range:
-                # Range case: "0-7" -> 8 bits
-                start_str, end_str = bit_range.split('-')
-                start, end = int(start_str), int(end_str)
-                if end < start:
-                    raise ValueError(f"bit_range '{bit_range}' not valid, end < start")
-                # +1 because the range is inclusive
-                total_bits += abs(end - start) + 1
-            else:
-                # Single bit case: one integer is one bit 
-                if bit_range.isdigit():
-                    total_bits += 1
-        field_widths[field_name] = total_bits
-    return field_widths
+        perf_field,range_strs_together = content.split(":",1)
+        range_strs = range_strs_together.split(",")
+        ranges = [_process_range(range_str) for range_str in range_strs]
+        fields[field_name] = (perf_field,ranges)
+    return fields
 
 
 
