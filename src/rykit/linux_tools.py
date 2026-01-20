@@ -1,5 +1,7 @@
 from typing import Dict,List,Optional
-from rykit.cmd import run_command_read_stdout
+from rykit.cmd import run_command_read_stdout,run_command_read_stdout_start,run_command_read_stdout_finish,Cmd
+import pandas as pd
+import io
 import shutil
 def lscpu() -> Dict[str, str]:
     """
@@ -173,3 +175,38 @@ def get_socket_for_cpu(cpu:int):
         if cpu in get_socket(socket):
             return socket
     raise ValueError(f"{cpu} not in any socket")
+def _build_msr_command(write:bool,ignore:Optional[List[int]]=None,include:Optional[List[int]]=None) -> str:
+    assert not ((ignore is not None) and (include is not None)),"cannot provide both ignore and include"
+    if ignore is not None and len(ignore) > 0:
+        conds = [f"(args->msr!={hex(v)})" for v in ignore]
+        cond = "&&".join(conds)
+    elif include is not None and len(include) > 0:
+        conds = [f"args->msr=={hex(v)}" for v in include]
+        cond = "||".join(conds)
+    else:
+        cond = "1"
+    event = "tracepoint:msr:write_msr" if write else "tracepoint:msr:read_msr"
+    cmd = "bpftrace -e "
+    cmd += "' "
+    cmd += event
+    cmd += "{ "
+    cmd += f"if({cond})"
+    cmd += '{printf("%d,\\"%x\\",\\"%lx\\"\\n", cpu, args->msr, args->val);}'
+    cmd += " }"
+    cmd += " '"
+    return cmd
+
+def start_profile_msr_verbose(write:bool,time_sec:int,ignore:Optional[List[int]]=None,include:Optional[List[int]]=None) -> Cmd:
+    base_cmd = _build_msr_command(write,ignore,include)
+    cmd = f"sudo timeout {time_sec} {base_cmd}"
+    return run_command_read_stdout_start(cmd)
+
+def stop_profile_msr(proc_data:Cmd) -> pd.DataFrame:
+    res = run_command_read_stdout_finish(proc_data)
+    #remove first line
+    print(res)
+    res = "\n".join(res.strip().splitlines()[1:])
+
+    df = pd.read_csv(io.StringIO(res),header=None,names=["cpu","msr","val"])
+    return df
+
