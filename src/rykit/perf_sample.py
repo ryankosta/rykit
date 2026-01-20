@@ -285,6 +285,54 @@ def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) ->
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
     return interpret_core_events(output, core_events)
+
+def build_raw_event(device:str,fields:Dict[str,int]) -> str:
+    """
+    Construct a perf-style raw event string for a given device and field values.
+
+    This validates that each provided field value fits within the bit-width
+    defined for the device, then formats the event in the form expected by perf:
+        <device>/<field1>=<value1>,<field2>=<value2>,.../
+
+    Args:
+        device: Perf device name (e.g., "amd_iommu", "uncore_imc").
+        fields: Mapping from field name to integer value to be encoded.
+
+    Returns:
+        A formatted perf core event string.
+
+    Raises:
+        AssertionError: If any field value exceeds the allowed bit-width
+                        for that field on the given device.
+    """
+    # check fields are valid
+    widths = get_device_field_widths(device)
+    for field_name,field_val in fields.items():
+        width = widths[field_name]
+        assert field_val <= 2**width, f"value {field_val} for field {field_name} ({width} bits) is too large"
+
+    # build event string
+    field_strs = [f"{field}={val}" for field,val in fields.items()]
+    config_str = ",".join(field_strs)
+    core_event = f'{device}/{config_str}/'
+    return core_event
+
+def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int]) -> int:
+    """
+    Sample a raw perf event defined by device and field values.
+    ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
+
+    Args:
+        cmd: Command to be executed under perf.
+        device: Perf device name.
+        fields: Mapping from field name to integer value to be encoded.
+
+    Returns:
+        The sampled counter value returned by perf.
+    """
+    core_event = build_raw_event(device,fields)
+    return perf_sample_core_event(cmd,core_event)
+
 def perf_sample_core_event(cmd: str, core_event: str, sudo:bool=True) -> int:
     """
     Run perf sampling for core event.
