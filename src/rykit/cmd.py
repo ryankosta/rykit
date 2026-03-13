@@ -2,12 +2,13 @@ import subprocess
 from typing import Tuple
 
 def _check_return_code(stderr:str,code:int, verbose=False):
-    if code == 124 and verbose :  # 124 is timeout exit code
-        print("Command timed out as expected.")
-    elif code == 0 and verbose:
-        print("Command returned 0")
+    if code == 124:  # 124 is timeout exit code
+        if verbose:
+            print("Command timed out as expected.")
+    elif code == 0:
+        if verbose:
+            print("Command returned 0")
     else:
-        print(stderr)
         raise ValueError(f"Command failed with exit code {code}.")
 def run_command_read_stderr(cmd: str) -> str:
     """
