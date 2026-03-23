@@ -317,7 +317,7 @@ def build_raw_event(device:str,fields:Dict[str,int]) -> str:
     core_event = f'{device}/{config_str}/'
     return core_event
 
-def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int]) -> int:
+def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int], sudo:bool=True) -> int:
     """
     Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
@@ -331,7 +331,7 @@ def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int]) -> int:
         The sampled counter value returned by perf.
     """
     core_event = build_raw_event(device,fields)
-    return perf_sample_core_event(cmd,core_event)
+    return perf_sample_core_event(cmd,core_event,sudo=sudo)
 
 def perf_sample_core_event(cmd: str, core_event: str, sudo:bool=True) -> int:
     """
