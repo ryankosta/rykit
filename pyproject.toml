@@ -33,3 +33,16 @@ source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rykit"]
+
+[tool.ruff]
+# Target version for syntax
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# E: pycodestyle, F: Pyflakes, I: isort, D: pydocstyle (docstrings)
+select = ["E", "F", "I", "D"]
+
+[tool.ruff.lint.pydocstyle]
+# Options: "google", "numpy", or "pep257"
+convention = "google"
