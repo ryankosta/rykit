@@ -19,6 +19,12 @@ packages = ["rykit"]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+lint = [
+    "mypy>=1.14.1",
+    "types-requests>=2.32.0.20241016",
+]
+
 [tool.hatch.version]
 # 3. Enable VCS (Git) versioning
 source = "vcs"
