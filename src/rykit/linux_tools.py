@@ -138,7 +138,7 @@ def parse_range_list(s: str) -> List[int]:
     Returns:
         List[int]: Expanded list of integers from the range string.
     """
-    result = []
+    result : List[int] = []
     for part in s.split(","):
         if "-" in part:
             start, end = map(int, part.split("-"))

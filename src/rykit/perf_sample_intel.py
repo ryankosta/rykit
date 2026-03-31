@@ -171,11 +171,11 @@ def perf_sample_uncore_event_many_named_masks(
     cmd: str, eventcode: str, masks: Dict[str, str]
 ) -> Dict[str, Dict[str, int]]:
     # create a list of unique eventcodes for each mask by adding zeroes to RHS (ie 0xF, 0x0F, 0x00F, ...) so that we have U  UID for event info from perf
-    name_to_code: dict[str, str] = {
+    name_to_code: Dict[str, str] = {
         k: add_zeroes_to_eventcode(eventcode, zeroct)
         for zeroct, k in enumerate(masks.keys())
     }
-    code_to_name: dict[str, str] = {v: k for k, v in name_to_code.items()}
+    code_to_name: Dict[str, str] = {v: k for k, v in name_to_code.items()}
 
     uncore_events: List[Tuple[str, str]] = [
         (code, masks[name]) for name, code in name_to_code.items()
