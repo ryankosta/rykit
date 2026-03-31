@@ -1,5 +1,5 @@
 import subprocess
-from typing import Tuple
+from typing import Tuple,List
 
 def _check_return_code(stderr:str,code:int, verbose:bool=False) -> None:
     if code == 124:  # 124 is timeout exit code
@@ -133,3 +133,13 @@ def read_file_get_str(pathstr:str) -> str:
         return f.read().strip()
 
 
+def read_file_get_lines(pathstr:str) -> List[str]:
+    """
+    Read file and return each line of file as a seperate str. 
+
+    Args:
+        pathstr (str): path of file
+    Returns:
+        List[str]: List of lines of file
+    """
+    return read_file_get_str(pathstr).split("\n")
