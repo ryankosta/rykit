@@ -317,7 +317,30 @@ def build_raw_event(device:str,fields:Dict[str,int]) -> str:
     core_event = f'{device}/{config_str}/'
     return core_event
 
-def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int], sudo:bool=True) -> int:
+def perf_sample_raw_events(cmd:str,device:str,fields:List[Dict[str,int]],
+                           sudo:bool=True) -> List[int]:
+    """
+    Sample a raw perf event defined by device and field values.
+    ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
+
+    Args:
+        cmd: Command to be executed under perf.
+        device: Perf device name.
+        fields: List of Mapping from field name to integer value to be encoded.
+        sudo: should run as sudo
+
+    Returns:
+        The sampled counter values returned by perf in the same order as list of fields
+    """
+    core_events = [build_raw_event(device,f) for f in fields]
+    res : Dict[str,int] = perf_sample_core_events(cmd,core_events,sudo=sudo)
+    # list of results in same order the incoming fields list
+    ordered_res = [res[core_event] for core_event in core_events]
+    return ordered_res
+
+
+def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int],
+                          sudo:bool=True) -> int:
     """
     Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
@@ -326,6 +349,7 @@ def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int], sudo:bool=Tru
         cmd: Command to be executed under perf.
         device: Perf device name.
         fields: Mapping from field name to integer value to be encoded.
+        sudo: should run as sudo
 
     Returns:
         The sampled counter value returned by perf.
