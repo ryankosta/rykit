@@ -120,4 +120,16 @@ def run_command_read_stderr_finish(proc_data : Cmd) -> str:
     _, stderr = _cmd_join(proc_data)
     return stderr
 
+def read_file_get_str(pathstr:str) -> str:
+    """
+    Read file and return string of contents.
+
+    Args:
+        pathstr (str): path of file
+    Returns:
+        str: Contents of file
+    """
+    with open(pathstr,'r') as f:
+        return f.read().strip()
+
 
