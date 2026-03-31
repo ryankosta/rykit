@@ -19,7 +19,7 @@ def lscpu() -> Dict[str, str]:
     return res
 
 
-def normalize(x: str, units: Dict[str, int], default: str):
+def normalize(x: str, units: Dict[str, int], default: str) -> int:
     """
     Normalize a string containing a number and a unit into the default unit.
 
@@ -147,7 +147,7 @@ def parse_range_list(s: str) -> List[int]:
             result.append(int(part))
     return result
 
-def get_socket_ct():
+def get_socket_ct() -> int:
     info = lscpu()
     return int(info["NUMA node(s)"])
 
@@ -170,7 +170,7 @@ def get_socket(skt: int) -> List[int]:
     nodestr = info[f"NUMA node{skt} CPU(s)"]
 
     return parse_range_list(nodestr)
-def get_socket_for_cpu(cpu:int):
+def get_socket_for_cpu(cpu:int) -> int:
     for socket in range(get_socket_ct()):
         if cpu in get_socket(socket):
             return socket

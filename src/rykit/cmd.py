@@ -1,7 +1,7 @@
 import subprocess
 from typing import Tuple
 
-def _check_return_code(stderr:str,code:int, verbose=False):
+def _check_return_code(stderr:str,code:int, verbose:bool=False) -> None:
     if code == 124:  # 124 is timeout exit code
         if verbose:
             print("Command timed out as expected.")

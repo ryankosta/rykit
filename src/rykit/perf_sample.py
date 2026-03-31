@@ -3,7 +3,7 @@ from rykit.cmd import run_command_read_stderr
 from typing import List, Dict, Set,Tuple
 import os
 
-def set_perf_event_paranoid(level: int):
+def set_perf_event_paranoid(level: int) -> None:
     """
     Sets the kernel's perf_event_paranoid level.
 
@@ -29,7 +29,7 @@ def set_perf_event_paranoid(level: int):
 EVENT_DIR : str ="/sys/bus/event_source/devices/"
 SOFT_DEVICES : Set[str] = {'software','uprobe','breakpoint','tracepoint','kprobe'}
 
-def get_devices(include_soft_devices=False) -> List[str]:
+def get_devices(include_soft_devices:bool=False) -> List[str]:
     """
     Returns list of perf event source devices 
 
@@ -66,7 +66,7 @@ def get_device_events(device:str) -> List[str]:
     else:
         return []
 
-def _process_range(bit_range:str):
+def _process_range(bit_range:str) -> Tuple[int,int]:
     if "-" in bit_range:
         assert bit_range.count("-") == 1
         start_str, end_str = bit_range.split('-')
@@ -260,7 +260,7 @@ def perf_normalize_per_core_events(cmd:str,events:List[str],socket:int) -> Dict[
 
 
 
-def add_zeroes_to_eventcode(eventcode: str, zeroct: int):
+def add_zeroes_to_eventcode(eventcode: str, zeroct: int) -> str:
     raw_hex_str = eventcode.split("0x")[1]
     return "0x" + ("0" * zeroct) + raw_hex_str
 
