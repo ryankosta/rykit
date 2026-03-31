@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ruff:
+    name: Run Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install dependencies
+        # We only need the lint group for Ruff
+        run: uv sync --group lint
+
+      - name: Run Ruff Check
+        # This checks for docstrings (D rules) and code errors
+        run: uv run ruff check .
+
+      - name: Run Ruff Format
+        # This ensures the code is formatted correctly
+        run: uv run ruff format --check .
