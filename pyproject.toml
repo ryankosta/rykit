@@ -22,6 +22,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 lint = [
     "mypy>=1.14.1",
+    "pandas-stubs>=2.0.3.230814",
     "types-requests>=2.32.0.20241016",
 ]
 
