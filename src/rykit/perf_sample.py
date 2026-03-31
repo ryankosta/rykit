@@ -322,6 +322,8 @@ def perf_sample_raw_events(cmd:str,device:str,fields:List[Dict[str,int]],
     """
     Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
+    WARNING: method does not know how many events can be sampled at once
+        This should be implemented by host
 
     Args:
         cmd: Command to be executed under perf.
