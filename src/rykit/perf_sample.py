@@ -285,6 +285,30 @@ def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) ->
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
     return interpret_core_events(output, core_events)
+def perf_sample_core_events_reentrant(cmd: str, core_events: List[str],batchsize:int, sudo:bool=True) -> Dict[str, int]:
+    """
+    Run perf sampling for core events in batches.
+    Each batch runs cmd and samples counters k thru k+batchsize
+
+    Note: Assumes that command behaves the same each time so it
+    doesnt matter which run the sample occurs on
+
+    Args:
+        cmd (str): Command to run under perf.
+        core_events (List[str]): List of core event names.
+        batchsize (int): maximum number of events to sample at once 
+        sudo (bool): Whether to run command as sudo
+
+    Returns:
+        Dict[str,int]: Mapping of event name -> event counter value.
+    """
+    batches : List[List[str]] = [core_events[k:k+batchsize] 
+                                 for k in range(0,len(core_events),batchsize)]
+    res : Dict[str,int] = {}
+    for batch in batches:
+        res.update(perf_sample_core_events(cmd,batch,sudo))
+    return res
+
 
 def build_raw_event(device:str,fields:Dict[str,int]) -> str:
     """
@@ -339,6 +363,31 @@ def perf_sample_raw_events(cmd:str,device:str,fields:List[Dict[str,int]],
     # list of results in same order the incoming fields list
     ordered_res = [res[core_event] for core_event in core_events]
     return ordered_res
+def perf_sample_raw_events_reentrant(cmd:str,device:str,fields:List[Dict[str,int]],
+                                     batchsize:int,sudo:bool=True) -> List[int]:
+    """
+    Sample a raw perf event defined by device and field values.
+    ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
+    WARNING: method does not know how many events can be sampled at once
+        This should be implemented by host
+        (And likely should be used as batchsize parameter)
+
+    Args:
+        cmd: Command to be executed under perf.
+        device: Perf device name.
+        fields: List of Mapping from field name to integer value to be encoded.
+        sudo: should run as sudo
+
+    Returns:
+        The sampled counter values returned by perf in the same order as list of fields
+    """
+    core_events = [build_raw_event(device,f) for f in fields]
+    res : Dict[str,int] = perf_sample_core_events_reentrant(cmd,core_events,
+                                                            batchsize,sudo=sudo)
+    # list of results in same order the incoming fields list
+    ordered_res = [res[core_event] for core_event in core_events]
+    return ordered_res
+
 
 
 def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int],
