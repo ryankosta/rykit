@@ -1,9 +1,11 @@
-from rykit.cmd import run_command_read_stdout,read_file_get_str
 import os
-from typing import List, Dict,Tuple
-def pci_device_str(domain:int,bus:int,device:int,func:int) -> str:
-    """
-    Formats PCI device coordinates into a standard identifier string.
+from typing import Dict, List, Tuple
+
+from rykit.cmd import read_file_get_str, run_command_read_stdout
+
+
+def pci_device_str(domain: int, bus: int, device: int, func: int) -> str:
+    """Formats PCI device coordinates into a standard identifier string.
 
     Args:
         domain (int): The PCI domain number.
@@ -16,9 +18,9 @@ def pci_device_str(domain:int,bus:int,device:int,func:int) -> str:
     """
     return f"{domain:04x}:{bus:02x}:{device:02x}.{func:01x}"
 
-def pci_device_get_directory(domain:int,bus:int,device:int,func:int) -> str:
-    """
-    Constructs the sysfs directory path for a specific PCI device.
+
+def pci_device_get_directory(domain: int, bus: int, device: int, func: int) -> str:
+    """Constructs the sysfs directory path for a specific PCI device.
 
     Args:
         domain (int): The PCI domain number.
@@ -29,11 +31,11 @@ def pci_device_get_directory(domain:int,bus:int,device:int,func:int) -> str:
     Returns:
         str: Absolute path to the device's sysfs directory.
     """
-    return "/sys/bus/pci/devices/" + pci_device_str(domain,bus,device,func) + "/"
+    return "/sys/bus/pci/devices/" + pci_device_str(domain, bus, device, func) + "/"
 
-def pci_device_exists(domain:int,bus:int,device:int,func:int) -> bool:
-    """
-    Checks if a PCI device exists in the system.
+
+def pci_device_exists(domain: int, bus: int, device: int, func: int) -> bool:
+    """Checks if a PCI device exists in the system.
 
     Args:
         domain (int): The PCI domain number.
@@ -44,12 +46,13 @@ def pci_device_exists(domain:int,bus:int,device:int,func:int) -> bool:
     Returns:
         bool: True if the device directory exists in sysfs, False otherwise.
     """
-    return os.path.exists(pci_device_get_directory(domain,bus,device,func))
+    return os.path.exists(pci_device_get_directory(domain, bus, device, func))
 
 
-def pci_device_vendor_device(domain:int,bus:int,device:int,func:int) -> Tuple[int,int]:
-    """
-    Retrieves the vendor and device IDs for a specific PCI device.
+def pci_device_vendor_device(
+    domain: int, bus: int, device: int, func: int
+) -> Tuple[int, int]:
+    """Retrieves the vendor and device IDs for a specific PCI device.
 
     Args:
         domain (int): The PCI domain number.
@@ -60,16 +63,16 @@ def pci_device_vendor_device(domain:int,bus:int,device:int,func:int) -> Tuple[in
     Returns:
         Tuple[int, int]: A tuple containing the vendor ID and device ID as integers.
     """
-    pcidir = pci_device_get_directory(domain,bus,device,func)
-    vendor = int(read_file_get_str(f"{pcidir}/vendor"),16)
-    device = int(read_file_get_str(f"{pcidir}/device"),16)
-    return vendor,device
+    pcidir = pci_device_get_directory(domain, bus, device, func)
+    vendor = int(read_file_get_str(f"{pcidir}/vendor"), 16)
+    device = int(read_file_get_str(f"{pcidir}/device"), 16)
+    return vendor, device
 
 
-
-def check_if_valid_pcie(domain:int, bus:int,device:int,func:int,offset:int) -> None:
-    """
-    Validates PCI parameters and register offsets against standard limits.
+def check_if_valid_pcie(
+    domain: int, bus: int, device: int, func: int, offset: int
+) -> None:
+    """Validates PCI parameters and register offsets against standard limits.
     Raises an AssertionError if any parameter is out of bounds or if the device does not exist.
 
     Args:
@@ -89,11 +92,11 @@ def check_if_valid_pcie(domain:int, bus:int,device:int,func:int,offset:int) -> N
     assert offset < 2**12, f"offset {offset} out of bounds"
     assert (offset % 4) == 0, f"offset {offset} not aligned"
 
-    assert pci_device_exists(domain,bus,device,func)
+    assert pci_device_exists(domain, bus, device, func)
 
-def pciConfigRead32(domain:int, bus:int,device:int,func:int,offset:int) -> int:
-    """
-    Reads a 32-bit value from the PCI configuration space of a device using setpci.
+
+def pciConfigRead32(domain: int, bus: int, device: int, func: int, offset: int) -> int:
+    """Reads a 32-bit value from the PCI configuration space of a device using setpci.
 
     Args:
         domain (int): The PCI domain number.
@@ -105,17 +108,19 @@ def pciConfigRead32(domain:int, bus:int,device:int,func:int,offset:int) -> int:
     Returns:
         int: The 32-bit data read from the specified offset.
     """
-    check_if_valid_pcie(domain,bus,device,func,offset)
-    addr_str = pci_device_str(domain,bus,device,func)
+    check_if_valid_pcie(domain, bus, device, func, offset)
+    addr_str = pci_device_str(domain, bus, device, func)
 
     offset_str = f"{offset:x}"
     cmd = f"sudo setpci -s {addr_str} {offset_str}.l"
     res = run_command_read_stdout(cmd)
-    return int(res,16)
+    return int(res, 16)
 
-def pciConfigWrite32(domain:int, bus:int,device:int,func:int,offset:int,data:int) -> None:
-    """
-    Writes a 32-bit value to the PCI configuration space of a device using setpci.
+
+def pciConfigWrite32(
+    domain: int, bus: int, device: int, func: int, offset: int, data: int
+) -> None:
+    """Writes a 32-bit value to the PCI configuration space of a device using setpci.
 
     Args:
         domain (int): The PCI domain number.
@@ -128,35 +133,33 @@ def pciConfigWrite32(domain:int, bus:int,device:int,func:int,offset:int,data:int
     Returns:
         None
     """
-    check_if_valid_pcie(domain,bus,device,func,offset)
+    check_if_valid_pcie(domain, bus, device, func, offset)
 
-    addr_str = pci_device_str(domain,bus,device,func)
-
+    addr_str = pci_device_str(domain, bus, device, func)
 
     offset_str = f"{offset:x}"
     data_str = f"{data:x}"
     cmd = f"sudo setpci -s {addr_str} {offset_str}.l={data_str}"
     run_command_read_stdout(cmd)
 
-def get_lspci() -> List[Dict[str,str]]:
-    """
-    Parses machine-readable output from lspci into a list of dictionaries.
+
+def get_lspci() -> List[Dict[str, str]]:
+    """Parses machine-readable output from lspci into a list of dictionaries.
 
     Returns:
         List[Dict[str, str]]: A list of dictionaries, where each dictionary represents
         a PCI device and its parsed key-value properties.
     """
     lines = run_command_read_stdout("lspci -vmm").strip().split("\n")
-    curr_dev : Dict[str,str] = {}
-    devs : List[Dict[str,str]] = []
+    curr_dev: Dict[str, str] = {}
+    devs: List[Dict[str, str]] = []
     for line in lines:
         if ":" not in line:
             continue
-        field,val = line.split(":",1)
+        field, val = line.split(":", 1)
 
         # found a new device
         if field == "Slot":
-
             # add the last device to list if it had any fields
             if len(curr_dev) > 0:
                 devs.append(curr_dev)

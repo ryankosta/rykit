@@ -1,14 +1,12 @@
 from typing import Dict, List, Tuple
-from rykit.perf_sample import interpret_umask, add_zeroes_to_eventcode
-from rykit.intel_tools import get_cha_count
+
 from rykit.cmd import run_command_read_stderr
-
-
+from rykit.intel_tools import get_cha_count
+from rykit.perf_sample import add_zeroes_to_eventcode, interpret_umask
 
 
 def create_unc_cha_event(chanum: int, event: str, hexmask: str) -> str:
-    """
-    Create a perf event string for a single CHA.
+    """Create a perf event string for a single CHA.
 
     Args:
         chanum (int): CHA index.
@@ -22,8 +20,7 @@ def create_unc_cha_event(chanum: int, event: str, hexmask: str) -> str:
 
 
 def create_unc_cha_events(event: str, hexmask: str) -> List[str]:
-    """
-    Create perf event strings for all CHAs on the system.
+    """Create perf event strings for all CHAs on the system.
 
     Args:
         event (str): Event code in hexadecimal.
@@ -32,7 +29,6 @@ def create_unc_cha_events(event: str, hexmask: str) -> List[str]:
     Returns:
         List[str]: Perf event strings for each CHA.
     """
-
     num_chas = get_cha_count()
     return [create_unc_cha_event(chanum, event, hexmask) for chanum in range(num_chas)]
 
@@ -40,8 +36,7 @@ def create_unc_cha_events(event: str, hexmask: str) -> List[str]:
 def build_perf_sample_uncore_cmd(
     program_cmd: str, unc_events: List[Tuple[str, str]]
 ) -> str:
-    """
-    Build a perf command that samples multiple uncore events.
+    """Build a perf command that samples multiple uncore events.
 
     Args:
         program_cmd (str): Command to run under perf.
@@ -60,8 +55,7 @@ def build_perf_sample_uncore_cmd(
 
 
 def interpret_uncore_event(output: str, event: str) -> Dict[str, int]:
-    """
-    Parse perf output for a single uncore event across CHAs.
+    """Parse perf output for a single uncore event across CHAs.
 
     Args:
         output (str): Raw stderr output from perf.
@@ -99,8 +93,7 @@ def interpret_uncore_event(output: str, event: str) -> Dict[str, int]:
 def interpret_uncore_event_many(
     output: str, events: List[str]
 ) -> Dict[str, Dict[str, int]]:
-    """
-    Parse perf output for multiple uncore events.
+    """Parse perf output for multiple uncore events.
 
     Args:
         output (str): Raw stderr output from perf.
@@ -116,8 +109,7 @@ def interpret_uncore_event_many(
 def perf_sample_uncore_event_many(
     program_cmd: str, unc_events: List[Tuple[str, str]]
 ) -> Dict[str, Dict[str, int]]:
-    """
-    Run perf sampling for multiple uncore events.
+    """Run perf sampling for multiple uncore events.
 
     Args:
         program_cmd (str): Command to run under perf.
@@ -150,8 +142,7 @@ def perf_sample_uncore_event_many(
 
 
 def perf_sample_uncore_event(program_cmd: str, event: str, mask: str) -> Dict[str, int]:
-    """
-    Run perf sampling for a single uncore event.
+    """Run perf sampling for a single uncore event.
 
     Args:
         program_cmd (str): Command to run under perf.
@@ -163,8 +154,6 @@ def perf_sample_uncore_event(program_cmd: str, event: str, mask: str) -> Dict[st
     """
     res = perf_sample_uncore_event_many(program_cmd, [(event, mask)])
     return list(res.values())[0]
-
-
 
 
 def perf_sample_uncore_event_many_named_masks(

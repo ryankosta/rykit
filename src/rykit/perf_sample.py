@@ -1,11 +1,11 @@
-from rykit.cmd import run_command_read_stdout
-from rykit.cmd import run_command_read_stderr
-from typing import List, Dict, Set,Tuple
 import os
+from typing import Dict, List, Set, Tuple
+
+from rykit.cmd import run_command_read_stderr, run_command_read_stdout
+
 
 def set_perf_event_paranoid(level: int) -> None:
-    """
-    Sets the kernel's perf_event_paranoid level.
+    """Sets the kernel's perf_event_paranoid level.
 
     The perf_event_paranoid setting controls the restrictions on
     performance monitoring for non-root users:
@@ -22,16 +22,19 @@ def set_perf_event_paranoid(level: int) -> None:
         AssertionError: If level is not an int or not in the allowed range.
     """
     assert type(level) == int
-    assert -1 <= level and level <= 3, f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
+    assert -1 <= level and level <= 3, (
+        f"tried to set perf_event_paranoid to {level}, allowed values are -1 through 3"
+    )
     cmd = f"sudo sysctl -w kernel.perf_event_paranoid={level}"
     run_command_read_stdout(cmd)
 
-EVENT_DIR : str ="/sys/bus/event_source/devices/"
-SOFT_DEVICES : Set[str] = {'software','uprobe','breakpoint','tracepoint','kprobe'}
 
-def get_devices(include_soft_devices:bool=False) -> List[str]:
-    """
-    Returns list of perf event source devices 
+EVENT_DIR: str = "/sys/bus/event_source/devices/"
+SOFT_DEVICES: Set[str] = {"software", "uprobe", "breakpoint", "tracepoint", "kprobe"}
+
+
+def get_devices(include_soft_devices: bool = False) -> List[str]:
+    """Returns list of perf event source devices
 
     Args:
         include_soft_devices (bool): If True, include software-based event
@@ -47,9 +50,10 @@ def get_devices(include_soft_devices:bool=False) -> List[str]:
         devices = [d for d in devices if d not in SOFT_DEVICES]
 
     return devices
-def get_device_events(device:str) -> List[str]:  
-    """
-    get perf event names for a given device
+
+
+def get_device_events(device: str) -> List[str]:
+    """Get perf event names for a given device
 
     Args:
         device (str): the device to query
@@ -57,7 +61,9 @@ def get_device_events(device:str) -> List[str]:
     Returns:
         List[str]: list of perf events
     """
-    assert device not in SOFT_DEVICES, f"{device} is a soft device, cannot get events for a soft device"
+    assert device not in SOFT_DEVICES, (
+        f"{device} is a soft device, cannot get events for a soft device"
+    )
     assert device in get_devices(), f"{device} is not a valid device"
     dir_path = f"{EVENT_DIR}/{device}/events"
     # if there are no events, it will present as an empty directory
@@ -66,20 +72,21 @@ def get_device_events(device:str) -> List[str]:
     else:
         return []
 
-def _process_range(bit_range:str) -> Tuple[int,int]:
+
+def _process_range(bit_range: str) -> Tuple[int, int]:
     if "-" in bit_range:
         assert bit_range.count("-") == 1
-        start_str, end_str = bit_range.split('-')
+        start_str, end_str = bit_range.split("-")
         start, end = int(start_str), int(end_str)
         if end < start:
             raise ValueError(f"bit_range '{bit_range}' not valid, end < start")
     else:
-        start,end = int(bit_range),int(bit_range)
-    return start,end
+        start, end = int(bit_range), int(bit_range)
+    return start, end
+
 
 def get_device_field_widths(device: str) -> Dict[str, int]:
-    """
-    Reads the format definition files for a specific perf device and calculates
+    """Reads the format definition files for a specific perf device and calculates
     the bit width (number of bits) for each field.
 
     Args:
@@ -94,21 +101,21 @@ def get_device_field_widths(device: str) -> Dict[str, int]:
         ValueError: If a format file contains invalid syntax.
     """
     raw_fields = get_device_fields(device)
-    fields : Dict[str,int] = {}
+    fields: Dict[str, int] = {}
     for field, bit_ranges in raw_fields.items():
-        lengths : List[int] = [(end-start+1) for (_,start,end) in bit_ranges]
+        lengths: List[int] = [(end - start + 1) for (_, start, end) in bit_ranges]
         fields[field] = sum(lengths)
     return fields
 
-def get_device_fields(device:str) -> Dict[str,List[Tuple[str,int,int]]]:
-    """
-    Reads the format definition files for a specific perf device 
+
+def get_device_fields(device: str) -> Dict[str, List[Tuple[str, int, int]]]:
+    """Reads the format definition files for a specific perf device
 
     Args:
         device (str): The name of the perf device (e.g., 'cpu', 'uncore_imc_0').
 
     Returns:
-        Dict[str,Tuple[str,List[Tuple[int,int]]]]: A dictionary where keys are field 
+        Dict[str,Tuple[str,List[Tuple[int,int]]]]: A dictionary where keys are field
                         names (filenames), and vals are tuple of ioctl field names
                         and bitfields within said ioctl fields
 
@@ -121,7 +128,7 @@ def get_device_fields(device:str) -> Dict[str,List[Tuple[str,int,int]]]:
     if not os.path.isdir(format_path):
         raise FileNotFoundError(f"Format directory not found at: {format_path}")
 
-    fields : Dict[str,List[Tuple[str,int,int]]] = {}
+    fields: Dict[str, List[Tuple[str, int, int]]] = {}
 
     # Iterate over every file in the format directory
     for field_name in os.listdir(format_path):
@@ -131,26 +138,26 @@ def get_device_fields(device:str) -> Dict[str,List[Tuple[str,int,int]]]:
         if not os.path.isfile(file_path):
             continue
 
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             # content example: "config:0-7" or "config:0-3,config:8-11"
             content = f.read().strip()
 
         assert content.count(":") > 0, f"bad formatting for device {device}"
-        assert content.count(":") < 2, f"bad formatting for device {device}, assumed format field:range,range,range"
+        assert content.count(":") < 2, (
+            f"bad formatting for device {device}, assumed format field:range,range,range"
+        )
         # Split by comma to handle non-contiguous ranges (e.g. "config:0-3,config:8-11")
-        ioctl_field,range_strs_together = content.split(":",1)
+        ioctl_field, range_strs_together = content.split(":", 1)
         range_strs = range_strs_together.split(",")
 
         ranges = [_process_range(range_str) for range_str in range_strs]
-        ranges_with_ioctl_field = [(ioctl_field,start,end) for start,end in ranges]
+        ranges_with_ioctl_field = [(ioctl_field, start, end) for start, end in ranges]
         fields[field_name] = ranges_with_ioctl_field
     return fields
 
 
-
 def get_perf_event_paranoid() -> int:
-    """
-    Returns the current kernel perf_event_paranoid level
+    """Returns the current kernel perf_event_paranoid level
     """
     try:
         with open("/proc/sys/kernel/perf_event_paranoid", "r") as f:
@@ -160,8 +167,7 @@ def get_perf_event_paranoid() -> int:
 
 
 def interpret_umask(binval: str) -> str:
-    """
-    Convert a binary string umask into its hexadecimal representation.
+    """Convert a binary string umask into its hexadecimal representation.
 
     Args:
         binval (str): A string representing a binary number (e.g., "1101").
@@ -185,11 +191,8 @@ def interpret_umask(binval: str) -> str:
     return hex_str
 
 
-
-
 def interpret_core_events(output: str, core_events: List[str]) -> Dict[str, int]:
-    """
-    Parse perf output for core events.
+    """Parse perf output for core events.
 
     Args:
         output (str): Raw stderr output from perf.
@@ -211,7 +214,6 @@ def interpret_core_events(output: str, core_events: List[str]) -> Dict[str, int]
                 valstr = valstr.replace(",", "")
 
                 if "Byte" in valstr:
-
                     valstr = valstr.split("Byte")[0]
 
                     # TODO this is debatable whether you want this,
@@ -223,50 +225,62 @@ def interpret_core_events(output: str, core_events: List[str]) -> Dict[str, int]
                     val = int(valstr)
                 res[event] = val
     return res
-def interpret_per_core_event(output:str,event:str,socket:int) -> Dict[str,int]:
-    data : Dict[int,Dict[str,int]] = {skt:{} for skt in range(2)}
+
+
+def interpret_per_core_event(output: str, event: str, socket: int) -> Dict[str, int]:
+    data: Dict[int, Dict[str, int]] = {skt: {} for skt in range(2)}
     for line in output.split("\n"):
         if event not in line:
             continue
-        fields : List[str] = [x for x in line.split(";") if x != ""]
-        #print(fields)
-        #[S0,D0,C0]
+        fields: List[str] = [x for x in line.split(";") if x != ""]
+        # print(fields)
+        # [S0,D0,C0]
         core_code = fields[0].split("-")
         socket_num = int(core_code[0][1:])
         core = core_code[2][1:]
         ctr = int(fields[2])
         data[socket_num][core] = ctr
-    #print(data[socket])
+    # print(data[socket])
     return data[socket]
-def perf_sample_per_core_event(cmd:str,event:str,socket:int) -> Dict[str,int]:
+
+
+def perf_sample_per_core_event(cmd: str, event: str, socket: int) -> Dict[str, int]:
     perf_cmd = f"sudo perf stat --per-core -x \\; -a -e {event} {cmd}"
     output = run_command_read_stderr(perf_cmd)
-    return interpret_per_core_event(output,event,socket)
-def perf_sample_per_core_events(cmd:str,events:List[str],socket:int) -> Dict[str,Dict[str,int]]:
+    return interpret_per_core_event(output, event, socket)
+
+
+def perf_sample_per_core_events(
+    cmd: str, events: List[str], socket: int
+) -> Dict[str, Dict[str, int]]:
     eventstr = " ".join([f"-e {event}" for event in events])
     perf_cmd = f"sudo perf stat --per-core -x \\; -a {eventstr} {cmd}"
     output = run_command_read_stderr(perf_cmd)
-    return {event:interpret_per_core_event(output,event,socket) for event in events}
-def perf_normalize_per_core_events(cmd:str,events:List[str],socket:int) -> Dict[str,Dict[str,float]]:
+    return {event: interpret_per_core_event(output, event, socket) for event in events}
+
+
+def perf_normalize_per_core_events(
+    cmd: str, events: List[str], socket: int
+) -> Dict[str, Dict[str, float]]:
     events += ["cycles"]
-    res = perf_sample_per_core_events(cmd,events,socket)
+    res = perf_sample_per_core_events(cmd, events, socket)
     cycles = res["cycles"]
-    normalized_res = {event:{core:ctr/cycles[core] for core,ctr in percore.items()} for event,percore in res.items()}
+    normalized_res = {
+        event: {core: ctr / cycles[core] for core, ctr in percore.items()}
+        for event, percore in res.items()
+    }
     return normalized_res
-
-
-
-
-
 
 
 def add_zeroes_to_eventcode(eventcode: str, zeroct: int) -> str:
     raw_hex_str = eventcode.split("0x")[1]
     return "0x" + ("0" * zeroct) + raw_hex_str
 
-def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) -> Dict[str, int]:
-    """
-    Run perf sampling for core events.
+
+def perf_sample_core_events(
+    cmd: str, core_events: List[str], sudo: bool = True
+) -> Dict[str, int]:
+    """Run perf sampling for core events.
 
     Args:
         cmd (str): Command to run under perf.
@@ -276,7 +290,6 @@ def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) ->
     Returns:
         Dict[str,int]: Mapping of event name -> event counter value.
     """
-
     event_flags = [f"-e {e}" for e in core_events]
     event_flag_str = " ".join(event_flags)
 
@@ -285,9 +298,12 @@ def perf_sample_core_events(cmd: str, core_events: List[str], sudo:bool=True) ->
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
     return interpret_core_events(output, core_events)
-def perf_sample_core_events_reentrant(cmd: str, core_events: List[str],batchsize:int, sudo:bool=True) -> Dict[str, int]:
-    """
-    Run perf sampling for core events in batches.
+
+
+def perf_sample_core_events_reentrant(
+    cmd: str, core_events: List[str], batchsize: int, sudo: bool = True
+) -> Dict[str, int]:
+    """Run perf sampling for core events in batches.
     Each batch runs cmd and samples counters k thru k+batchsize
 
     Note: Assumes that command behaves the same each time so it
@@ -296,23 +312,23 @@ def perf_sample_core_events_reentrant(cmd: str, core_events: List[str],batchsize
     Args:
         cmd (str): Command to run under perf.
         core_events (List[str]): List of core event names.
-        batchsize (int): maximum number of events to sample at once 
+        batchsize (int): maximum number of events to sample at once
         sudo (bool): Whether to run command as sudo
 
     Returns:
         Dict[str,int]: Mapping of event name -> event counter value.
     """
-    batches : List[List[str]] = [core_events[k:k+batchsize] 
-                                 for k in range(0,len(core_events),batchsize)]
-    res : Dict[str,int] = {}
+    batches: List[List[str]] = [
+        core_events[k : k + batchsize] for k in range(0, len(core_events), batchsize)
+    ]
+    res: Dict[str, int] = {}
     for batch in batches:
-        res.update(perf_sample_core_events(cmd,batch,sudo))
+        res.update(perf_sample_core_events(cmd, batch, sudo))
     return res
 
 
-def build_raw_event(device:str,fields:Dict[str,int]) -> str:
-    """
-    Construct a perf-style raw event string for a given device and field values.
+def build_raw_event(device: str, fields: Dict[str, int]) -> str:
+    """Construct a perf-style raw event string for a given device and field values.
 
     This validates that each provided field value fits within the bit-width
     defined for the device, then formats the event in the form expected by perf:
@@ -331,20 +347,23 @@ def build_raw_event(device:str,fields:Dict[str,int]) -> str:
     """
     # check fields are valid
     widths = get_device_field_widths(device)
-    for field_name,field_val in fields.items():
+    for field_name, field_val in fields.items():
         width = widths[field_name]
-        assert field_val <= 2**width, f"value {field_val} for field {field_name} ({width} bits) is too large"
+        assert field_val <= 2**width, (
+            f"value {field_val} for field {field_name} ({width} bits) is too large"
+        )
 
     # build event string
-    field_strs = [f"{field}={val}" for field,val in fields.items()]
+    field_strs = [f"{field}={val}" for field, val in fields.items()]
     config_str = ",".join(field_strs)
-    core_event = f'{device}/{config_str}/'
+    core_event = f"{device}/{config_str}/"
     return core_event
 
-def perf_sample_raw_events(cmd:str,device:str,fields:List[Dict[str,int]],
-                           sudo:bool=True) -> List[int]:
-    """
-    Sample a raw perf event defined by device and field values.
+
+def perf_sample_raw_events(
+    cmd: str, device: str, fields: List[Dict[str, int]], sudo: bool = True
+) -> List[int]:
+    """Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
     WARNING: method does not know how many events can be sampled at once
         This should be implemented by host
@@ -358,15 +377,21 @@ def perf_sample_raw_events(cmd:str,device:str,fields:List[Dict[str,int]],
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
-    core_events = [build_raw_event(device,f) for f in fields]
-    res : Dict[str,int] = perf_sample_core_events(cmd,core_events,sudo=sudo)
+    core_events = [build_raw_event(device, f) for f in fields]
+    res: Dict[str, int] = perf_sample_core_events(cmd, core_events, sudo=sudo)
     # list of results in same order the incoming fields list
     ordered_res = [res[core_event] for core_event in core_events]
     return ordered_res
-def perf_sample_raw_events_reentrant(cmd:str,device:str,fields:List[Dict[str,int]],
-                                     batchsize:int,sudo:bool=True) -> List[int]:
-    """
-    Sample a raw perf event defined by device and field values.
+
+
+def perf_sample_raw_events_reentrant(
+    cmd: str,
+    device: str,
+    fields: List[Dict[str, int]],
+    batchsize: int,
+    sudo: bool = True,
+) -> List[int]:
+    """Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
     WARNING: method does not know how many events can be sampled at once
         This should be implemented by host
@@ -381,19 +406,19 @@ def perf_sample_raw_events_reentrant(cmd:str,device:str,fields:List[Dict[str,int
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
-    core_events = [build_raw_event(device,f) for f in fields]
-    res : Dict[str,int] = perf_sample_core_events_reentrant(cmd,core_events,
-                                                            batchsize,sudo=sudo)
+    core_events = [build_raw_event(device, f) for f in fields]
+    res: Dict[str, int] = perf_sample_core_events_reentrant(
+        cmd, core_events, batchsize, sudo=sudo
+    )
     # list of results in same order the incoming fields list
     ordered_res = [res[core_event] for core_event in core_events]
     return ordered_res
 
 
-
-def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int],
-                          sudo:bool=True) -> int:
-    """
-    Sample a raw perf event defined by device and field values.
+def perf_sample_raw_event(
+    cmd: str, device: str, fields: Dict[str, int], sudo: bool = True
+) -> int:
+    """Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
 
     Args:
@@ -405,12 +430,12 @@ def perf_sample_raw_event(cmd:str,device:str,fields:Dict[str,int],
     Returns:
         The sampled counter value returned by perf.
     """
-    core_event = build_raw_event(device,fields)
-    return perf_sample_core_event(cmd,core_event,sudo=sudo)
+    core_event = build_raw_event(device, fields)
+    return perf_sample_core_event(cmd, core_event, sudo=sudo)
 
-def perf_sample_core_event(cmd: str, core_event: str, sudo:bool=True) -> int:
-    """
-    Run perf sampling for core event.
+
+def perf_sample_core_event(cmd: str, core_event: str, sudo: bool = True) -> int:
+    """Run perf sampling for core event.
 
     Args:
         cmd (str): Command to run under perf.
@@ -418,6 +443,6 @@ def perf_sample_core_event(cmd: str, core_event: str, sudo:bool=True) -> int:
         sudo (bool): Whether to run command as sudo
 
     Returns:
-        int: core event value 
+        int: core event value
     """
-    return perf_sample_core_events(cmd,[core_event],sudo=sudo)[core_event]
+    return perf_sample_core_events(cmd, [core_event], sudo=sudo)[core_event]

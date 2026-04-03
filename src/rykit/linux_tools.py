@@ -1,11 +1,19 @@
-from typing import Dict,List,Optional
-from rykit.cmd import run_command_read_stdout,run_command_read_stdout_start,run_command_read_stdout_finish,Cmd
-import pandas as pd
 import io
 import shutil
+from typing import Dict, List, Optional
+
+import pandas as pd
+
+from rykit.cmd import (
+    Cmd,
+    run_command_read_stdout,
+    run_command_read_stdout_finish,
+    run_command_read_stdout_start,
+)
+
+
 def lscpu() -> Dict[str, str]:
-    """
-    Parse the output of `lscpu` into a dictionary.
+    """Parse the output of `lscpu` into a dictionary.
 
     Returns:
         Dict[str, str]: Mapping of lscpu fields to their values.
@@ -20,8 +28,7 @@ def lscpu() -> Dict[str, str]:
 
 
 def normalize(x: str, units: Dict[str, int], default: str) -> int:
-    """
-    Normalize a string containing a number and a unit into the default unit.
+    """Normalize a string containing a number and a unit into the default unit.
 
     Args:
         x (str): Input string, e.g., "64KB".
@@ -45,13 +52,14 @@ def normalize(x: str, units: Dict[str, int], default: str) -> int:
     raise ValueError(
         f"{x} did not contain a valid unit out of choices {units_longest_first}"
     )
-def numactl_pin(node:int) -> str:
-    """
-    Generates a command which binds CPU execution and memory allocation
+
+
+def numactl_pin(node: int) -> str:
+    """Generates a command which binds CPU execution and memory allocation
     to a single NUMA node.
 
     Args:
-        node (int): NUMA node to bind to 
+        node (int): NUMA node to bind to
 
     Returns:
         str: numactl command prefix to prepend to a command.
@@ -59,12 +67,13 @@ def numactl_pin(node:int) -> str:
     Raises:
         RuntimeError: If numactl is not installed.
     """
-    if shutil.which('numactl') is None:
+    if shutil.which("numactl") is None:
         raise RuntimeError("numactl should be installed")
     return f"numactl --cpunodebind={node} --membind={node} "
-def numactl_pin_mem(node:int) -> str:
-    """
-    Generates a command which binds memory allocation to a NUMA node
+
+
+def numactl_pin_mem(node: int) -> str:
+    """Generates a command which binds memory allocation to a NUMA node
     without restricting CPU placement.
 
     Args:
@@ -76,14 +85,13 @@ def numactl_pin_mem(node:int) -> str:
     Raises:
         RuntimeError: If numactl is not installed.
     """
-    if shutil.which('numactl') is None:
+    if shutil.which("numactl") is None:
         raise RuntimeError("numactl should be installed")
     return f"numactl --membind={node} "
 
 
-def numactl_pin_cpu(cpus:List[int],mem_node:Optional[int]) -> str:
-    """
-    Generates a command which binds execution to specific CPUs and
+def numactl_pin_cpu(cpus: List[int], mem_node: Optional[int]) -> str:
+    """Generates a command which binds execution to specific CPUs and
     binds memory to a NUMA node.
 
     Args:
@@ -99,18 +107,17 @@ def numactl_pin_cpu(cpus:List[int],mem_node:Optional[int]) -> str:
         AssertionError: If cpus is empty.
     """
     assert len(cpus) > 0
-    if shutil.which('numactl') is None:
+    if shutil.which("numactl") is None:
         raise RuntimeError("numactl should be installed")
 
     if mem_node is None:
-        mem_node = get_socket_for_cpu(cpus[0]) 
-    cpustr = ",".join([str(x) for x in cpus]) 
-    return f"numactl --membind={mem_node} --physcpubind={cpustr} " 
+        mem_node = get_socket_for_cpu(cpus[0])
+    cpustr = ",".join([str(x) for x in cpus])
+    return f"numactl --membind={mem_node} --physcpubind={cpustr} "
 
 
 def lscpu_cache() -> Dict[str, Dict[str, str]]:
-    """
-    Parse `lscpu -C` output to get per-CPU cache and CPU info.
+    """Parse `lscpu -C` output to get per-CPU cache and CPU info.
 
     Returns:
         Dict[str, Dict[str, str]]: Mapping from CPU ID to its properties.
@@ -129,8 +136,7 @@ def lscpu_cache() -> Dict[str, Dict[str, str]]:
 
 
 def parse_range_list(s: str) -> List[int]:
-    """
-    Convert a string representing ranges into a list of integers.
+    """Convert a string representing ranges into a list of integers.
 
     Args:
         s (str): Range string, e.g., "0-3,5,7-8".
@@ -138,7 +144,7 @@ def parse_range_list(s: str) -> List[int]:
     Returns:
         List[int]: Expanded list of integers from the range string.
     """
-    result : List[int] = []
+    result: List[int] = []
     for part in s.split(","):
         if "-" in part:
             start, end = map(int, part.split("-"))
@@ -147,13 +153,14 @@ def parse_range_list(s: str) -> List[int]:
             result.append(int(part))
     return result
 
+
 def get_socket_ct() -> int:
     info = lscpu()
     return int(info["NUMA node(s)"])
 
+
 def get_socket(skt: int) -> List[int]:
-    """
-    Get the list of CPU IDs belonging to a specific NUMA socket.
+    """Get the list of CPU IDs belonging to a specific NUMA socket.
 
     Args:
         skt (int): NUMA socket index (0-based).
@@ -170,13 +177,21 @@ def get_socket(skt: int) -> List[int]:
     nodestr = info[f"NUMA node{skt} CPU(s)"]
 
     return parse_range_list(nodestr)
-def get_socket_for_cpu(cpu:int) -> int:
+
+
+def get_socket_for_cpu(cpu: int) -> int:
     for socket in range(get_socket_ct()):
         if cpu in get_socket(socket):
             return socket
     raise ValueError(f"{cpu} not in any socket")
-def _build_msr_command(write:bool,ignore:Optional[List[int]]=None,include:Optional[List[int]]=None) -> str:
-    assert not ((ignore is not None) and (include is not None)),"cannot provide both ignore and include"
+
+
+def _build_msr_command(
+    write: bool, ignore: Optional[List[int]] = None, include: Optional[List[int]] = None
+) -> str:
+    assert not ((ignore is not None) and (include is not None)), (
+        "cannot provide both ignore and include"
+    )
     if ignore is not None and len(ignore) > 0:
         conds = [f"(args->msr!={hex(v)})" for v in ignore]
         cond = "&&".join(conds)
@@ -196,17 +211,23 @@ def _build_msr_command(write:bool,ignore:Optional[List[int]]=None,include:Option
     cmd += " '"
     return cmd
 
-def start_profile_msr_verbose(write:bool,time_sec:int,ignore:Optional[List[int]]=None,include:Optional[List[int]]=None) -> Cmd:
-    base_cmd = _build_msr_command(write,ignore,include)
+
+def start_profile_msr_verbose(
+    write: bool,
+    time_sec: int,
+    ignore: Optional[List[int]] = None,
+    include: Optional[List[int]] = None,
+) -> Cmd:
+    base_cmd = _build_msr_command(write, ignore, include)
     cmd = f"sudo timeout {time_sec} {base_cmd}"
     return run_command_read_stdout_start(cmd)
 
-def stop_profile_msr(proc_data:Cmd) -> pd.DataFrame:
+
+def stop_profile_msr(proc_data: Cmd) -> pd.DataFrame:
     res = run_command_read_stdout_finish(proc_data)
-    #remove first line
+    # remove first line
     print(res)
     res = "\n".join(res.strip().splitlines()[1:])
 
-    df = pd.read_csv(io.StringIO(res),header=None,names=["cpu","msr","val"])
+    df = pd.read_csv(io.StringIO(res), header=None, names=["cpu", "msr", "val"])
     return df
-

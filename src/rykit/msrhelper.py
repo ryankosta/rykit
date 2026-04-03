@@ -1,7 +1,10 @@
-from rykit.cmd import run_command_read_stdout
-from typing import Optional
 import os
 import shutil
+from typing import Optional
+
+from rykit.cmd import run_command_read_stdout
+
+
 def check_msr_dev_exists() -> bool:
     """Checks if the MSR device file exists.
 
@@ -9,6 +12,8 @@ def check_msr_dev_exists() -> bool:
         bool: True if /dev/cpu/0/msr exists, False otherwise.
     """
     return os.path.exists("/dev/cpu/0/msr")
+
+
 def check_msr_tools_installed() -> bool:
     """Checks if the msr-tools package is installed in the system PATH.
 
@@ -16,7 +21,9 @@ def check_msr_tools_installed() -> bool:
         bool: True if the 'wrmsr' executable is found, False otherwise.
     """
     return shutil.which("wrmsr") is not None
-def wrmsr_broadcast(msr:int,val:int) -> None:
+
+
+def wrmsr_broadcast(msr: int, val: int) -> None:
     """Writes a value to a Model-Specific Register (MSR) across all CPUs.
 
     Args:
@@ -30,7 +37,8 @@ def wrmsr_broadcast(msr:int,val:int) -> None:
     assert check_msr_dev_exists()
     run_command_read_stdout(f"sudo wrmsr -a 0x{msr:X} 0x{val:X}")
 
-def wrmsr(msr:int,val:int,cpu:Optional[int]=None) -> None:
+
+def wrmsr(msr: int, val: int, cpu: Optional[int] = None) -> None:
     """Writes a value to a Model-Specific Register (MSR) across all CPUs.
 
     Args:
@@ -50,7 +58,7 @@ def wrmsr(msr:int,val:int,cpu:Optional[int]=None) -> None:
     run_command_read_stdout(f"sudo wrmsr {flags} 0x{msr:X} 0x{val:X}")
 
 
-def rdmsr(msr:int,cpu:Optional[int]=None) -> int:
+def rdmsr(msr: int, cpu: Optional[int] = None) -> int:
     """Reads a value from a Model-Specific Register (MSR).
 
     Args:
@@ -68,5 +76,4 @@ def rdmsr(msr:int,cpu:Optional[int]=None) -> int:
         flags = f"-p {cpu}"
 
     val = run_command_read_stdout(f"sudo rdmsr {flags} 0x{msr:X}").strip()
-    return int(val,16)
-
+    return int(val, 16)

@@ -1,7 +1,8 @@
 import subprocess
-from typing import Tuple,List
+from typing import List, Tuple
 
-def _check_return_code(stderr:str,code:int, verbose:bool=False) -> None:
+
+def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
     if code == 124:  # 124 is timeout exit code
         if verbose:
             print("Command timed out as expected.")
@@ -10,9 +11,10 @@ def _check_return_code(stderr:str,code:int, verbose:bool=False) -> None:
             print("Command returned 0")
     else:
         raise ValueError(f"Command failed with exit code {code}.")
+
+
 def run_command_read_stderr(cmd: str) -> str:
-    """
-    Run a shell command and capture stderr output.
+    """Run a shell command and capture stderr output.
 
     Args:
         cmd (str): The shell command to execute.
@@ -26,14 +28,13 @@ def run_command_read_stderr(cmd: str) -> str:
     )
     output: str = result.stderr  # perf outputs stats to stderr
 
-    _check_return_code(output,result.returncode,True)
+    _check_return_code(output, result.returncode, True)
 
     return output
 
 
 def run_command_read_stdout(cmd: str) -> str:
-    """
-    Run a shell command and capture stdout output.
+    """Run a shell command and capture stdout output.
 
     Args:
         cmd (str): The shell command to execute.
@@ -47,22 +48,23 @@ def run_command_read_stdout(cmd: str) -> str:
     )
     output: str = result.stdout
 
-    _check_return_code(result.stderr,result.returncode)
+    _check_return_code(result.stderr, result.returncode)
 
     return output
 
+
 Cmd = subprocess.Popen[str]
-def run_command_read_stdout_start(cmd:str) -> Cmd:
-    """
-    Start a shell command to capture future stdout
+
+
+def run_command_read_stdout_start(cmd: str) -> Cmd:
+    """Start a shell command to capture future stdout
 
     Args:
         cmd (str): The shell command to execute.
 
     Returns:
-        Cmd: object to use for later reading command output 
+        Cmd: object to use for later reading command output
     """
-
     print(f"running cmd (in background): {cmd}")
     proc = subprocess.Popen(
         cmd,
@@ -72,44 +74,45 @@ def run_command_read_stdout_start(cmd:str) -> Cmd:
         text=True,
     )
     return proc
-def run_command_read_stderr_start(cmd:str) -> Cmd:
-    """
-    Start a shell command to capture future stderr
+
+
+def run_command_read_stderr_start(cmd: str) -> Cmd:
+    """Start a shell command to capture future stderr
 
     Args:
         cmd (str): The shell command to execute.
 
     Returns:
-        Cmd: object to use for later reading command output 
+        Cmd: object to use for later reading command output
     """
     return run_command_read_stdout_start(cmd)
 
-def _cmd_join(proc_data : Cmd) -> Tuple[str,str]:
+
+def _cmd_join(proc_data: Cmd) -> Tuple[str, str]:
     proc = proc_data
     proc.wait()
     code = proc.returncode
     assert code is not None, "process did not exit after calling proc.wait()"
     stdout, stderr = proc.communicate()
-    _check_return_code(stderr,code)
-    return stdout,stderr
+    _check_return_code(stderr, code)
+    return stdout, stderr
 
-def run_command_read_stdout_finish(proc_data : Cmd) -> str:
-    """
-    Wait till shell command completes, read it's stdout
 
+def run_command_read_stdout_finish(proc_data: Cmd) -> str:
+    """Wait till shell command completes, read it's stdout
 
     Args:
         proc_data (Cmd): command to read
 
     Returns:
-        str: The stdout output of the command 
+        str: The stdout output of the command
     """
     stdout, _ = _cmd_join(proc_data)
     return stdout
-def run_command_read_stderr_finish(proc_data : Cmd) -> str:
-    """
-    Wait till shell command completes, read it's stderr
 
+
+def run_command_read_stderr_finish(proc_data: Cmd) -> str:
+    """Wait till shell command completes, read it's stderr
 
     Args:
         proc_data (Cmd): command to read
@@ -120,22 +123,21 @@ def run_command_read_stderr_finish(proc_data : Cmd) -> str:
     _, stderr = _cmd_join(proc_data)
     return stderr
 
-def read_file_get_str(pathstr:str) -> str:
-    """
-    Read file and return string of contents.
+
+def read_file_get_str(pathstr: str) -> str:
+    """Read file and return string of contents.
 
     Args:
         pathstr (str): path of file
     Returns:
         str: Contents of file
     """
-    with open(pathstr,'r') as f:
+    with open(pathstr, "r") as f:
         return f.read().strip()
 
 
-def read_file_get_lines(pathstr:str) -> List[str]:
-    """
-    Read file and return each line of file as a seperate str. 
+def read_file_get_lines(pathstr: str) -> List[str]:
+    """Read file and return each line of file as a seperate str.
 
     Args:
         pathstr (str): path of file
