@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Set, Tuple
 
-from rykit.cmd import run_command_read_stderr, run_command_read_stdout
+from rykit.cmd import run_command_read_stderr, run_command_read_stdout, read_file_get_str
 
 
 def set_perf_event_paranoid(level: int) -> None:
@@ -83,6 +83,24 @@ def _process_range(bit_range: str) -> Tuple[int, int]:
     else:
         start, end = int(bit_range), int(bit_range)
     return start, end
+def _range_list_to_list(range_list:str) -> List[int]:
+        range_strs = range_list.split(",")
+        ranges = [_process_range(range_str) for range_str in range_strs]
+        res = []
+        for start,end in ranges:
+            res += list(range(start,end+1))
+        assert len(set(res)) == len(res)
+        return res
+def get_device_cores(device:str) -> List[int]:
+    """Returns the cores device can be sampled from.
+
+    Args:
+        device (str): device to check
+    """
+    cpumask = read_file_get_str(f"{EVENT_DIR}/device/cpumask")
+    return _range_list_to_list(cpumask)
+    
+    
 
 
 def get_device_field_widths(device: str) -> Dict[str, int]:
@@ -366,9 +384,11 @@ def build_raw_event(device: str, fields: Dict[str, int]) -> str:
 
 def perf_sample_raw_events(
         cmd: str, device: str, fields: List[Dict[str, int]],
-        sudo: bool = True, flags : List[str] = []
+        sudo: bool = True, 
+        flags : List[str] = [], cores : List[int] = []
 ) -> List[int]:
     """Sample a raw perf event defined by device and field values.
+
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
     WARNING: method does not know how many events can be sampled at once
         This should be implemented by host
@@ -379,10 +399,20 @@ def perf_sample_raw_events(
         fields: List of Mapping from field name to integer value to be encoded.
         sudo: should run as sudo
         flags (List[str]): list of flags to pass
+        cores (List[int]): list of cores to run events on 
+                            (empty means don't specify cores)
 
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
+    device_cores = get_device_cores(device)
+    for f in flags:
+        assert not f.startswith("-C "), "do not provide -C flag for raw event sampling, use cores arg instead"
+    for c in cores:
+        assert c in device_cores, f"core {c} cannot sample device {device}, allowed cores are {device_cores}"
+    if len(cores) > 0:
+        corestr = ",".join([str(c) for c in cores])
+        flags += f"-C {corestr}"
     core_events = [build_raw_event(device, f) for f in fields]
     res: Dict[str, int] = perf_sample_core_events(cmd, core_events,
                                                   sudo=sudo,flags=flags)
@@ -396,9 +426,11 @@ def perf_sample_raw_events_reentrant(
     device: str,
     fields: List[Dict[str, int]],
     batchsize: int,
-    sudo: bool = True, flags : List[str] = []
+    sudo: bool = True, flags : List[str] = [],
+    cores : List[int] = []
 ) -> List[int]:
     """Sample a raw perf event defined by device and field values.
+
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
     WARNING: method does not know how many events can be sampled at once
         This should be implemented by host
@@ -408,12 +440,25 @@ def perf_sample_raw_events_reentrant(
         cmd: Command to be executed under perf.
         device: Perf device name.
         fields: List of Mapping from field name to integer value to be encoded.
+        batchsize (int): maximum number of events to sample at once
         sudo: should run as sudo
         flags (List[str]): list of flags to pass
+        cores (List[int]): list of cores to run events on 
+                            (empty means don't specify cores)
+
 
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
+    device_cores = get_device_cores(device)
+    for f in flags:
+        assert not f.startswith("-C "), "do not provide -C flag for raw event sampling, use cores arg instead"
+    for c in cores:
+        assert c in device_cores, f"core {c} cannot sample device {device}, allowed cores are {device_cores}"
+    if len(cores) > 0:
+        corestr = ",".join([str(c) for c in cores])
+        flags += f"-C {corestr}"
+
     core_events = [build_raw_event(device, f) for f in fields]
     res: Dict[str, int] = perf_sample_core_events_reentrant(
         cmd, core_events, batchsize, sudo=sudo,flags=flags
