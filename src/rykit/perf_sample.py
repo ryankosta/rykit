@@ -277,8 +277,9 @@ def add_zeroes_to_eventcode(eventcode: str, zeroct: int) -> str:
     return "0x" + ("0" * zeroct) + raw_hex_str
 
 
+VALID_FLAGS = "C"
 def perf_sample_core_events(
-    cmd: str, core_events: List[str], sudo: bool = True
+        cmd: str, core_events: List[str], sudo: bool = True, flags : List[str] = []
 ) -> Dict[str, int]:
     """Run perf sampling for core events.
 
@@ -286,14 +287,18 @@ def perf_sample_core_events(
         cmd (str): Command to run under perf.
         core_events (List[str]): List of core event names.
         sudo (bool): Whether to run command as sudo
+        flags (List[str]): list of flags to pass
 
     Returns:
         Dict[str,int]: Mapping of event name -> event counter value.
     """
     event_flags = [f"-e {e}" for e in core_events]
     event_flag_str = " ".join(event_flags)
+    for flag in flags:
+        assert flag in VALID_FLAGS, f"flag {flag} is not a valid flag {VALID_FLAGS}"
+    flag_str = " ".join([f"-{f}" for f in flags])
 
-    full_cmd = f"perf stat {event_flag_str} {cmd}"
+    full_cmd = f"perf stat {flag_str} {event_flag_str} {cmd}"
     if sudo:
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
@@ -301,7 +306,8 @@ def perf_sample_core_events(
 
 
 def perf_sample_core_events_reentrant(
-    cmd: str, core_events: List[str], batchsize: int, sudo: bool = True
+    cmd: str, core_events: List[str], batchsize: int,
+    sudo: bool = True,  flags : List[str] = []
 ) -> Dict[str, int]:
     """Run perf sampling for core events in batches.
     Each batch runs cmd and samples counters k thru k+batchsize
@@ -314,6 +320,7 @@ def perf_sample_core_events_reentrant(
         core_events (List[str]): List of core event names.
         batchsize (int): maximum number of events to sample at once
         sudo (bool): Whether to run command as sudo
+        flags (List[str]): list of flags to pass
 
     Returns:
         Dict[str,int]: Mapping of event name -> event counter value.
@@ -323,7 +330,7 @@ def perf_sample_core_events_reentrant(
     ]
     res: Dict[str, int] = {}
     for batch in batches:
-        res.update(perf_sample_core_events(cmd, batch, sudo))
+        res.update(perf_sample_core_events(cmd, batch, sudo,flags))
     return res
 
 
@@ -361,7 +368,8 @@ def build_raw_event(device: str, fields: Dict[str, int]) -> str:
 
 
 def perf_sample_raw_events(
-    cmd: str, device: str, fields: List[Dict[str, int]], sudo: bool = True
+        cmd: str, device: str, fields: List[Dict[str, int]],
+        sudo: bool = True, flags : List[str] = []
 ) -> List[int]:
     """Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
@@ -373,12 +381,14 @@ def perf_sample_raw_events(
         device: Perf device name.
         fields: List of Mapping from field name to integer value to be encoded.
         sudo: should run as sudo
+        flags (List[str]): list of flags to pass
 
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
     core_events = [build_raw_event(device, f) for f in fields]
-    res: Dict[str, int] = perf_sample_core_events(cmd, core_events, sudo=sudo)
+    res: Dict[str, int] = perf_sample_core_events(cmd, core_events,
+                                                  sudo=sudo,flags=flags)
     # list of results in same order the incoming fields list
     ordered_res = [res[core_event] for core_event in core_events]
     return ordered_res
@@ -389,7 +399,7 @@ def perf_sample_raw_events_reentrant(
     device: str,
     fields: List[Dict[str, int]],
     batchsize: int,
-    sudo: bool = True,
+    sudo: bool = True, flags : List[str] = []
 ) -> List[int]:
     """Sample a raw perf event defined by device and field values.
     ie: sample event <device>/<field1>=<value1>,<field2>=<value2>,.../
@@ -402,13 +412,14 @@ def perf_sample_raw_events_reentrant(
         device: Perf device name.
         fields: List of Mapping from field name to integer value to be encoded.
         sudo: should run as sudo
+        flags (List[str]): list of flags to pass
 
     Returns:
         The sampled counter values returned by perf in the same order as list of fields
     """
     core_events = [build_raw_event(device, f) for f in fields]
     res: Dict[str, int] = perf_sample_core_events_reentrant(
-        cmd, core_events, batchsize, sudo=sudo
+        cmd, core_events, batchsize, sudo=sudo,flags=flags
     )
     # list of results in same order the incoming fields list
     ordered_res = [res[core_event] for core_event in core_events]
