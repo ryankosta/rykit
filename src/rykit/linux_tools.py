@@ -1,6 +1,7 @@
 import io
 import shutil
 from typing import Dict, List, Optional
+import os
 
 import pandas as pd
 
@@ -9,6 +10,7 @@ from rykit.cmd import (
     run_command_read_stdout,
     run_command_read_stdout_finish,
     run_command_read_stdout_start,
+    read_file_get_str
 )
 
 
@@ -132,6 +134,61 @@ def lscpu_cache() -> Dict[str, Dict[str, str]]:
         key = cells[0]
         val = {k: v for k, v in zip(col_names[1:], cells[1:])}
         res[key] = val
+    return res
+def get_all_logical_cores() -> List[int]:
+    """ get list of all logical core numbers sorted numerically.
+
+    Uses listings in /sys/devices/system/cpu/
+
+    TODO this seems like safest method. Doing it based on
+    count is unsafe because cpu numbers may not be contigious.
+    
+    Furthermore, many listing based mechanisms fail when affinity
+    is being used; which is problematic.
+    """
+    # ["cpu0", "cpu1", ...]
+    cpudirs = os.listdir("/sys/devices/system/cpu/")
+    cpuids = [int(x.replace("cpu","")) for x in cpudirs]
+    cpuids.sort()
+    return cpuids
+def get_cache_siblings(cpunum:int,cachelevel:int) -> List[int]:
+    """ get logical cpus which share a given cache with specific cpu.
+
+    Args:
+        cpunum (int): cpu to check sharers of 
+        cachelevel (int): cache level to check sharing (ie: 3 for l3) 
+    """
+    assert cpunum >= 0
+    assert cachelevel >= 0
+
+    cpudir = f"/sys/devices/system/cpu/cpu{cpunum}"
+    assert os.path.isdir(cpudir), f"{cpunum} not a valid cpu number"
+
+    cachedir = f"{cpudir}/cache/index{cachelevel}"
+    assert os.path.isdir(cachedir), f"{cachedir} not a valid directory, likely no L{cachelevel} cache"
+
+    filepath = f"{cachedir}/shared_cpu_list"
+    liststr = read_file_get_str(filepath)
+    return parse_range_list(liststr)
+def get_cache_sibling_groups(cachelevel:int) -> List[List[int]]:
+    """ get all groups of cache siblings at a given cache level
+
+    sorted by smallest sibling (so index is into list is consistent id)
+
+    Args:
+        cachelevel (int): cache level to get all sharing groups of (ie: 3 for l3) 
+    """
+    cores = set(get_all_logical_cores())
+    res : List[List[int]] = []
+    # iteratively find groups of siblings until no more siblings left
+    while len(cores) > 0:
+        currcpu = cores.pop()
+        siblings = get_cache_siblings(currcpu,cachelevel)
+        siblings.sort()
+        res.append(siblings)
+        cores -= set(siblings)
+    # sort by the smallest sibling
+    res.sort(key=lambda x:x[0])
     return res
 
 
