@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Set, Tuple
 
 from rykit.cmd import run_command_read_stderr, run_command_read_stdout, read_file_get_str
+from rykit.linux_tools import parse_range_list
 
 
 def set_perf_event_paranoid(level: int) -> None:
@@ -83,22 +84,14 @@ def _process_range(bit_range: str) -> Tuple[int, int]:
     else:
         start, end = int(bit_range), int(bit_range)
     return start, end
-def _range_list_to_list(range_list:str) -> List[int]:
-        range_strs = range_list.split(",")
-        ranges = [_process_range(range_str) for range_str in range_strs]
-        res = []
-        for start,end in ranges:
-            res += list(range(start,end+1))
-        assert len(set(res)) == len(res)
-        return res
 def get_device_cores(device:str) -> List[int]:
     """Returns the cores device can be sampled from.
 
     Args:
         device (str): device to check
     """
-    cpumask = read_file_get_str(f"{EVENT_DIR}/device/cpumask")
-    return _range_list_to_list(cpumask)
+    cpumask = read_file_get_str(f"{EVENT_DIR}/{device}/cpumask")
+    return parse_range_list(cpumask)
     
     
 
