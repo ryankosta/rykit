@@ -363,6 +363,7 @@ def build_raw_event(device: str, fields: Dict[str, int]) -> str:
     # check fields are valid
     widths = get_device_field_widths(device)
     for field_name, field_val in fields.items():
+        assert field_name in widths, f"field {field_name} is not a valid field, valid fields are {list(widths.keys())}"
         width = widths[field_name]
         assert field_val <= 2**width, (
             f"value {field_val} for field {field_name} ({width} bits) is too large"
