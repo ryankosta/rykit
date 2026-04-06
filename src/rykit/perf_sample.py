@@ -277,7 +277,6 @@ def add_zeroes_to_eventcode(eventcode: str, zeroct: int) -> str:
     return "0x" + ("0" * zeroct) + raw_hex_str
 
 
-VALID_FLAGS = "C"
 def perf_sample_core_events(
         cmd: str, core_events: List[str], sudo: bool = True, flags : List[str] = []
 ) -> Dict[str, int]:
@@ -294,8 +293,6 @@ def perf_sample_core_events(
     """
     event_flags = [f"-e {e}" for e in core_events]
     event_flag_str = " ".join(event_flags)
-    for flag in flags:
-        assert flag in VALID_FLAGS, f"flag {flag} is not a valid flag {VALID_FLAGS}"
     flag_str = " ".join([f"-{f}" for f in flags])
 
     full_cmd = f"perf stat {flag_str} {event_flag_str} {cmd}"
