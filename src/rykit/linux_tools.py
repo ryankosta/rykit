@@ -147,8 +147,16 @@ def get_all_logical_cores() -> List[int]:
     is being used; which is problematic.
     """
     # ["cpu0", "cpu1", ...]
-    cpudirs = os.listdir("/sys/devices/system/cpu/")
-    cpuids = [int(x.replace("cpu","")) for x in cpudirs]
+    fnames = os.listdir("/sys/devices/system/cpu/")
+    cpuids : List[int] = []
+    for fname in fnames:
+        if not fname.startswith("cpu"):
+            continue
+        rawnumstr = fname.replace("cpu","")
+        try:
+            cpuids.append(int(rawnumstr))
+        except:
+            continue
     cpuids.sort()
     return cpuids
 def get_cache_siblings(cpunum:int,cachelevel:int) -> List[int]:
