@@ -7,7 +7,7 @@ authors = [
 ]
 license = { text = "MIT" }
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pandas"]
 # 1. Tell the project the version is dynamic
 dynamic = ["version"]
 
