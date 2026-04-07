@@ -1,4 +1,4 @@
-from rykit.linux_tools import lscpum,get_all_logical_cores,get_cache_siblings,get_cache_sibling_groups
+from rykit.linux_tools import lscpu,get_all_logical_cores,get_cache_siblings,get_cache_sibling_groups
 def test_lscpu():
     info = lscpu()
     assert len(info) != 0
