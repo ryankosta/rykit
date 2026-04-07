@@ -20,6 +20,9 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
 lint = [
     "mypy>=1.14.1",
     "pandas-stubs>=2.0.3.230814",
