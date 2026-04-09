@@ -222,6 +222,13 @@ def parse_range_list(s: str) -> List[int]:
 def get_socket_ct() -> int:
     info = lscpu()
     return int(info["NUMA node(s)"])
+def get_numa_nodes() -> List[int]:
+    """Get list of online numa nodes.
+
+    Note: some numa nodes may be CPU-only or Memory-Only
+    """
+    numa_online = read_file_get_str("/sys/devices/system/node/online")
+    return parse_range_list(numa_online)
 
 
 def get_socket(skt: int) -> List[int]:
