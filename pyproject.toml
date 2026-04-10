@@ -11,8 +11,6 @@ dependencies = ["pandas"]
 # 1. Tell the project the version is dynamic
 dynamic = ["version"]
 
-[tool.uv]
-packages = ["rykit"]
 
 [build-system]
 # 2. Switch to hatchling and include the hatch-vcs plugin

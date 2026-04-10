@@ -1,3 +1,5 @@
+"""Helper functions for reading and writing to Model Specific Registers."""
+
 import os
 import shutil
 from typing import Optional

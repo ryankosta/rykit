@@ -1,3 +1,5 @@
+"""Provides tools for PCI device scanning mapping on linux."""
+
 import os
 from typing import Dict, List, Tuple
 
@@ -68,50 +70,59 @@ def pci_device_vendor_device(
     vendor = int(read_file_get_str(f"{pcidir}/vendor"), 16)
     device = int(read_file_get_str(f"{pcidir}/device"), 16)
     return vendor, device
-def pci_device_numa_node(
-        domain: int, bus: int, device: int, func: int
-)->int: 
+
+
+def pci_device_numa_node(domain: int, bus: int, device: int, func: int) -> int:
     """Get numa node which pci device resides on."""
     pcidir = pci_device_get_directory(domain, bus, device, func)
-    #TODO is this hex?
+    # TODO is this hex?
     numa = int(read_file_get_str(f"{pcidir}/numa_node"))
     if numa == -1:
         numa_nodes = get_numa_nodes()
-        assert len(numa_nodes) == 1, "pci sysfs should only return -1 if their is only 1 numa node"
+        assert len(numa_nodes) == 1, (
+            "pci sysfs should only return -1 if their is only 1 numa node"
+        )
         return numa_nodes[0]
     assert numa >= 0
     return numa
-def pci_device_list() -> List[Tuple[int,int,int,int]]:
+
+
+def pci_device_list() -> List[Tuple[int, int, int, int]]:
     """Lists the pci devices.
+
     Note: using some lspci here would be cleaner, but lspci is not installed by
-    default always. so the sysfs method is a bit safer
-    
+    default always. so the sysfs method is a bit safer.
+
     Returns:
         List[Tuple[int,int,int,int]]: list of Domain,Bus,Device,Func for each pci device
     """
-    devices : List[Tuple[int,int,int,int]] = []
+    devices: List[Tuple[int, int, int, int]] = []
     for pci_device_name in os.listdir("/sys/bus/pci/devices/"):
         device_as_str = pci_device_name.split(":")
-        assert len(device_as_str) == 4, f"Error: /sys/bus/pci/devices had entry not in form DOMAIN:BUS:DEVICE:FUNC ({pci_device_name})"
-        d = [int(field,16) for field in device_as_str]
-        devices.append((d[0],d[1],d[2],d[3]))
-    return devices 
-
-
+        assert len(device_as_str) == 4, (
+            "Error: /sys/bus/pci/devices had entry not in "
+            f"form DOMAIN:BUS:DEVICE:FUNC ({pci_device_name})"
+        )
+        d = [int(field, 16) for field in device_as_str]
+        devices.append((d[0], d[1], d[2], d[3]))
+    return devices
 
 
 def check_if_valid_pcie(
     domain: int, bus: int, device: int, func: int, offset: int
 ) -> None:
     """Validates PCI parameters and register offsets against standard limits.
-    Raises an AssertionError if any parameter is out of bounds or if the device does not exist.
+
+    Raises an AssertionError if any parameter is out of bounds or if
+    the device does not exist.
 
     Args:
         domain (int): The PCI domain number (must be < 2**16).
         bus (int): The PCI bus number (must be <= 0xFF).
         device (int): The PCI device number (must be <= 0x1F).
         func (int): The PCI function number (must be <= 0x7).
-        offset (int): The PCIe configuration space offset (must be < 2**12 and 4-byte aligned).
+        offset (int): The PCIe configuration space offset (must be
+            < 2**12 and 4-byte aligned).
 
     Returns:
         None

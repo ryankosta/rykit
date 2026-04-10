@@ -1,16 +1,18 @@
+"""General collection of linux command parsing tools."""
+
 import io
+import os
 import shutil
 from typing import Dict, List, Optional
-import os
 
 import pandas as pd
 
 from rykit.cmd import (
     Cmd,
+    read_file_get_str,
     run_command_read_stdout,
     run_command_read_stdout_finish,
     run_command_read_stdout_start,
-    read_file_get_str
 )
 
 
@@ -57,8 +59,7 @@ def normalize(x: str, units: Dict[str, int], default: str) -> int:
 
 
 def numactl_pin(node: int) -> str:
-    """Generates a command which binds CPU execution and memory allocation
-    to a single NUMA node.
+    """Generate command to bind CPU and memory to a NUMA node.
 
     Args:
         node (int): NUMA node to bind to
@@ -75,8 +76,7 @@ def numactl_pin(node: int) -> str:
 
 
 def numactl_pin_mem(node: int) -> str:
-    """Generates a command which binds memory allocation to a NUMA node
-    without restricting CPU placement.
+    """Generate command to bind memory to a NUMA node.
 
     Args:
         node (int): NUMA node for memory allocation
@@ -93,8 +93,7 @@ def numactl_pin_mem(node: int) -> str:
 
 
 def numactl_pin_cpu(cpus: List[int], mem_node: Optional[int]) -> str:
-    """Generates a command which binds execution to specific CPUs and
-    binds memory to a NUMA node.
+    """Generate command to bind memory and CPU to NUMA nodes.
 
     Args:
         cpus (List[int]): CPU IDs the process is allowed to run on.
@@ -135,36 +134,40 @@ def lscpu_cache() -> Dict[str, Dict[str, str]]:
         val = {k: v for k, v in zip(col_names[1:], cells[1:])}
         res[key] = val
     return res
+
+
 def get_all_logical_cores() -> List[int]:
-    """ get list of all logical core numbers sorted numerically.
+    """Get list of all logical core numbers sorted numerically.
 
     Uses listings in /sys/devices/system/cpu/
 
     TODO this seems like safest method. Doing it based on
     count is unsafe because cpu numbers may not be contigious.
-    
+
     Furthermore, many listing based mechanisms fail when affinity
     is being used; which is problematic.
     """
     # ["cpu0", "cpu1", ...]
     fnames = os.listdir("/sys/devices/system/cpu/")
-    cpuids : List[int] = []
+    cpuids: List[int] = []
     for fname in fnames:
         if not fname.startswith("cpu"):
             continue
-        rawnumstr = fname.replace("cpu","")
+        rawnumstr = fname.replace("cpu", "")
         try:
             cpuids.append(int(rawnumstr))
-        except:
+        except Exception:
             continue
     cpuids.sort()
     return cpuids
-def get_cache_siblings(cpunum:int,cachelevel:int) -> List[int]:
-    """ get logical cpus which share a given cache with specific cpu.
+
+
+def get_cache_siblings(cpunum: int, cachelevel: int) -> List[int]:
+    """Get logical cpus which share a given cache with specific cpu.
 
     Args:
-        cpunum (int): cpu to check sharers of 
-        cachelevel (int): cache level to check sharing (ie: 3 for l3) 
+        cpunum (int): cpu to check sharers of
+        cachelevel (int): cache level to check sharing (ie: 3 for l3)
     """
     assert cpunum >= 0
     assert cachelevel >= 0
@@ -173,30 +176,34 @@ def get_cache_siblings(cpunum:int,cachelevel:int) -> List[int]:
     assert os.path.isdir(cpudir), f"{cpunum} not a valid cpu number"
 
     cachedir = f"{cpudir}/cache/index{cachelevel}"
-    assert os.path.isdir(cachedir), f"{cachedir} not a valid directory, likely no L{cachelevel} cache"
+    assert os.path.isdir(cachedir), (
+        f"{cachedir} not a valid directory, likely no L{cachelevel} cache"
+    )
 
     filepath = f"{cachedir}/shared_cpu_list"
     liststr = read_file_get_str(filepath)
     return parse_range_list(liststr)
-def get_cache_sibling_groups(cachelevel:int) -> List[List[int]]:
-    """ get all groups of cache siblings at a given cache level
+
+
+def get_cache_sibling_groups(cachelevel: int) -> List[List[int]]:
+    """Get all groups of cache siblings at a given cache level.
 
     sorted by smallest sibling (so index is into list is consistent id)
 
     Args:
-        cachelevel (int): cache level to get all sharing groups of (ie: 3 for l3) 
+        cachelevel (int): cache level to get all sharing groups of (ie: 3 for l3)
     """
     cores = set(get_all_logical_cores())
-    res : List[List[int]] = []
+    res: List[List[int]] = []
     # iteratively find groups of siblings until no more siblings left
     while len(cores) > 0:
         currcpu = cores.pop()
-        siblings = get_cache_siblings(currcpu,cachelevel)
+        siblings = get_cache_siblings(currcpu, cachelevel)
         siblings.sort()
         res.append(siblings)
         cores -= set(siblings)
     # sort by the smallest sibling
-    res.sort(key=lambda x:x[0])
+    res.sort(key=lambda x: x[0])
     return res
 
 
@@ -220,8 +227,11 @@ def parse_range_list(s: str) -> List[int]:
 
 
 def get_socket_ct() -> int:
+    """Get the number of CPU sockets on the system."""
     info = lscpu()
     return int(info["NUMA node(s)"])
+
+
 def get_numa_nodes() -> List[int]:
     """Get list of online numa nodes.
 
@@ -252,6 +262,7 @@ def get_socket(skt: int) -> List[int]:
 
 
 def get_socket_for_cpu(cpu: int) -> int:
+    """Get the socket ID containing the specified CPU."""
     for socket in range(get_socket_ct()):
         if cpu in get_socket(socket):
             return socket
@@ -290,12 +301,14 @@ def start_profile_msr_verbose(
     ignore: Optional[List[int]] = None,
     include: Optional[List[int]] = None,
 ) -> Cmd:
+    """Starts an MSR profiling session using trace and returns a Cmd object."""
     base_cmd = _build_msr_command(write, ignore, include)
     cmd = f"sudo timeout {time_sec} {base_cmd}"
     return run_command_read_stdout_start(cmd)
 
 
 def stop_profile_msr(proc_data: Cmd) -> pd.DataFrame:
+    """Stops the active MSR profiling process and returns parsed DataFrame."""
     res = run_command_read_stdout_finish(proc_data)
     # remove first line
     print(res)

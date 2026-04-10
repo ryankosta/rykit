@@ -1,3 +1,5 @@
+"""Provides tools for sampling performance on Intel architecture."""
+
 from typing import Dict, List, Tuple
 
 from rykit.cmd import run_command_read_stderr
@@ -125,7 +127,8 @@ def perf_sample_uncore_event_many(
     events = [e for e, _ in unc_events]
     if len(events) != len(set(events)):
         raise ValueError(
-            f'this function does not support passing two identical event codes (passed {events})\n\t hint: prepend 0 ie ["0xF", "0x0F","0x00F","0x000F"]'
+            "this function does not support passing two identical event codes "
+            f'(passed {events})\n\t hint: prepend 0 ie ["0xF", "0x0F","0x00F","0x000F"]'
         )
 
     for _, mask in unc_events:
@@ -159,7 +162,19 @@ def perf_sample_uncore_event(program_cmd: str, event: str, mask: str) -> Dict[st
 def perf_sample_uncore_event_many_named_masks(
     cmd: str, eventcode: str, masks: Dict[str, str]
 ) -> Dict[str, Dict[str, int]]:
-    # create a list of unique eventcodes for each mask by adding zeroes to RHS (ie 0xF, 0x0F, 0x00F, ...) so that we have U  UID for event info from perf
+    """Sample an uncore event with multiple named umasks concurrently.
+
+    Args:
+        cmd (str): Command to execute.
+        eventcode (str): Uncore event code to monitor.
+        masks (Dict[str, str]): Mapping from human-readable mask names to umasks.
+
+    Returns:
+        Dict[str, Dict[str, int]]: Nested dictionary mapping mask names and CHA
+                                   indices to sampled counter values.
+    """
+    # create a list of unique eventcodes for each mask by adding zeroes to RHS
+    # (ie 0xF, 0x0F, 0x00F, ...) so that we have UID for event info from perf
     name_to_code: Dict[str, str] = {
         k: add_zeroes_to_eventcode(eventcode, zeroct)
         for zeroct, k in enumerate(masks.keys())

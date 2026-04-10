@@ -1,11 +1,11 @@
 from rykit.linux_tools import (
-    lscpu,
     get_all_logical_cores,
-    get_cache_siblings,
     get_cache_sibling_groups,
+    get_cache_siblings,
+    get_socket,
     get_socket_ct,
     get_socket_for_cpu,
-    get_socket
+    lscpu,
 )
 
 
@@ -22,6 +22,8 @@ def test_get_socket_for_cpu():
         skt = get_socket_for_cpu(core)
         cores_in_skt = get_socket(skt)
         assert core in cores_in_skt
+
+
 def test_get_socket_ct():
     cores = get_all_logical_cores()
     sockets = set(get_socket_for_cpu(c) for c in cores)
