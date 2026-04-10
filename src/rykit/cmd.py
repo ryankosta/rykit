@@ -1,3 +1,5 @@
+"""Provides tools to launch shell commands and read their string output."""
+
 import subprocess
 from typing import List, Tuple
 
@@ -57,7 +59,7 @@ Cmd = subprocess.Popen[str]
 
 
 def run_command_read_stdout_start(cmd: str) -> Cmd:
-    """Start a shell command to capture future stdout
+    """Start a shell command to capture future stdout.
 
     Args:
         cmd (str): The shell command to execute.
@@ -77,7 +79,7 @@ def run_command_read_stdout_start(cmd: str) -> Cmd:
 
 
 def run_command_read_stderr_start(cmd: str) -> Cmd:
-    """Start a shell command to capture future stderr
+    """Start a shell command to capture future stderr.
 
     Args:
         cmd (str): The shell command to execute.
@@ -99,7 +101,7 @@ def _cmd_join(proc_data: Cmd) -> Tuple[str, str]:
 
 
 def run_command_read_stdout_finish(proc_data: Cmd) -> str:
-    """Wait till shell command completes, read it's stdout
+    """Wait till shell command completes, read it's stdout.
 
     Args:
         proc_data (Cmd): command to read
@@ -112,7 +114,7 @@ def run_command_read_stdout_finish(proc_data: Cmd) -> str:
 
 
 def run_command_read_stderr_finish(proc_data: Cmd) -> str:
-    """Wait till shell command completes, read it's stderr
+    """Wait till shell command completes, read it's stderr.
 
     Args:
         proc_data (Cmd): command to read

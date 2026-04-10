@@ -1,3 +1,5 @@
+"""Provides tools for sampling performance on AMD architecture."""
+
 from typing import Dict, List, Tuple
 
 from rykit.perf_sample import (
@@ -15,13 +17,15 @@ def perf_sample_amd_uncore_event_many(
     Args:
         cmd (str): Command to run under perf.
         unc_events (List[Tuple[str,str]]): List of (event, binary umask) pairs.
+        sudo (bool): Whether to run command as sudo.
 
     Returns:
         Dict[str,Dict[str,int]]: Mapping of event code -> event counter value.
     """
     paranoid = get_perf_event_paranoid()
     assert sudo or (paranoid <= 0), (
-        f"amd uncore sampling requires sudo or perf event paranoid of <= 0 (current is {paranoid})"
+        "amd uncore sampling requires sudo or perf event "
+        f"paranoid of <= 0 (current is {paranoid})"
     )
 
     events = [
