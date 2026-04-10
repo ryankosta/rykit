@@ -12,7 +12,7 @@ from rykit.perf_sample import (
 def test_process_range():
     assert _process_range("0-3") == (0, 3)
     assert _process_range("5") == (5, 5)
-    
+
     with pytest.raises(ValueError, match="end < start"):
         _process_range("3-0")
 
@@ -21,10 +21,10 @@ def test_interpret_umask():
     assert interpret_umask("1101") == "0xd"
     assert interpret_umask("0000") == "0x0"
     assert interpret_umask("11111111") == "0xff"
-    
+
     with pytest.raises(ValueError, match="not a valid binary string"):
         interpret_umask("invalid")
-    
+
     with pytest.raises(ValueError, match="more then 8 bits"):
         interpret_umask("111111111")
 
@@ -60,11 +60,11 @@ def test_interpret_per_core_event():
         "S1-D0-C0;ignored;999;event_1\n"
         "S0-D0-C0;ignored;111;event_other"
     )
-    
+
     # Check socket 0
     res_s0 = interpret_per_core_event(output, "event_1", 0)
     assert res_s0 == {"0": 12345, "1": 6789}
-    
+
     # Check socket 1
     res_s1 = interpret_per_core_event(output, "event_1", 1)
     assert res_s1 == {"0": 999}

@@ -11,6 +11,7 @@ from rykit.cmd import (
     run_command_read_stdout_start,
 )
 
+
 def test_run_command_read_stdout():
 
     assert run_command_read_stdout("echo hi").strip() == "hi"

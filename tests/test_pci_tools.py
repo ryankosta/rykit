@@ -24,7 +24,8 @@ def test_pci_device_get_directory():
 
 
 def test_check_if_valid_pcie_bounds():
-    # test valid bounds logic. pci_device_exists will fail if we use bounds that don't map to a real device.
+    # test valid bounds logic. pci_device_exists will fail if we use bounds
+    # that don't map to a real device.
     # We will test bounds assertions failure.
     with pytest.raises(AssertionError, match="domain .* out of bounds"):
         check_if_valid_pcie(2**16, 0, 0, 0, 0)

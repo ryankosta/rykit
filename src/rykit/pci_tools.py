@@ -106,7 +106,9 @@ def pci_device_list() -> List[Tuple[int, int, int, int]]:
                 "Error: /sys/bus/pci/devices had entry not in "
                 f"form DOMAIN:BUS:DEVICE.FUNC ({pci_device_name})"
             )
-        devices.append((int(domain_s, 16), int(bus_s, 16), int(dev_s, 16), int(func_s, 16)))
+        devices.append(
+            (int(domain_s, 16), int(bus_s, 16), int(dev_s, 16), int(func_s, 16))
+        )
     return devices
 
 
