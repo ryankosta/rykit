@@ -98,13 +98,17 @@ def pci_device_list() -> List[Tuple[int, int, int, int]]:
     """
     devices: List[Tuple[int, int, int, int]] = []
     for pci_device_name in os.listdir("/sys/bus/pci/devices/"):
-        device_as_str = pci_device_name.split(":")
-        assert len(device_as_str) == 4, (
-            "Error: /sys/bus/pci/devices had entry not in "
-            f"form DOMAIN:BUS:DEVICE:FUNC ({pci_device_name})"
+        try:
+            domain_s, bus_s, dev_func_s = pci_device_name.split(":")
+            dev_s, func_s = dev_func_s.split(".")
+        except ValueError:
+            raise AssertionError(
+                "Error: /sys/bus/pci/devices had entry not in "
+                f"form DOMAIN:BUS:DEVICE.FUNC ({pci_device_name})"
+            )
+        devices.append(
+            (int(domain_s, 16), int(bus_s, 16), int(dev_s, 16), int(func_s, 16))
         )
-        d = [int(field, 16) for field in device_as_str]
-        devices.append((d[0], d[1], d[2], d[3]))
     return devices
 
 
