@@ -14,7 +14,7 @@ def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
     else:
         print("\n\n=== STDERR")
         print(stderr)
-        print("n===\n\n")
+        print("===\n\n")
         raise ValueError(f"Command failed with exit code {code}.")
 
 
