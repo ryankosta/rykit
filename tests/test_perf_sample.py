@@ -61,9 +61,7 @@ def test_interpret_periodic_core_events():
         "0.200;<not counted>;;events_b;0.00;0.00\n"
     )
 
-    assert interpret_periodic_core_events(
-        output, ["events_a", "events_b"]
-    ) == {
+    assert interpret_periodic_core_events(output, ["events_a", "events_b"]) == {
         "events_a": [(0.1, 1234), (0.2, 2345)],
         "events_b": [(0.1, 567)],
     }

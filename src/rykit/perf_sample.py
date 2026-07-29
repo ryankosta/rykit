@@ -421,9 +421,7 @@ def perf_sample_periodic_core_events(
     assert interval_ms > 0
     event_flag_str = " ".join([f"-e {event}" for event in core_events])
     flag_str = " ".join([f"-{flag}" for flag in flags])
-    full_cmd = (
-        f"perf stat -x \\; -I {interval_ms} {flag_str} {event_flag_str} {cmd}"
-    )
+    full_cmd = f"perf stat -x \\; -I {interval_ms} {flag_str} {event_flag_str} {cmd}"
     if sudo:
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
