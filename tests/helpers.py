@@ -23,9 +23,7 @@ def stub_run_command_read_stdout(
     module: ModuleType,
     outputs: Dict[str, str],
 ) -> Callable[[str], str]:
-    return _stub_run_command(
-        monkeypatch, module, "run_command_read_stdout", outputs
-    )
+    return _stub_run_command(monkeypatch, module, "run_command_read_stdout", outputs)
 
 
 def stub_run_command_read_stderr(
@@ -33,6 +31,4 @@ def stub_run_command_read_stderr(
     module: ModuleType,
     outputs: Dict[str, str],
 ) -> Callable[[str], str]:
-    return _stub_run_command(
-        monkeypatch, module, "run_command_read_stderr", outputs
-    )
+    return _stub_run_command(monkeypatch, module, "run_command_read_stderr", outputs)

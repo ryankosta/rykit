@@ -49,8 +49,7 @@ def test_pci_tools_stdout_callers(monkeypatch):
             "sudo setpci -s 0000:01:02.3 10.l": "1234abcd\n",
             "sudo setpci -s 0000:01:02.3 10.l=1234abcd": "",
             "lspci -vmm": (
-                "Slot:\t0000:01:02.3\nClass:\tEthernet controller\n"
-                "Vendor:\tExample\n"
+                "Slot:\t0000:01:02.3\nClass:\tEthernet controller\nVendor:\tExample\n"
             ),
         },
     )
@@ -77,32 +76,39 @@ def test_set_perf_event_paranoid(monkeypatch):
 
 
 def test_perf_sample_stderr_callers(monkeypatch):
-    per_core_output = (
-        "S0-D0-C0;ignored;10;event_a\n"
-        "S0-D0-C0;ignored;20;event_b\n"
-    )
+    per_core_output = "S0-D0-C0;ignored;10;event_a\nS0-D0-C0;ignored;20;event_b\n"
     stub_run_command_read_stderr(
         monkeypatch,
         perf_sample,
         {
             "sudo perf stat --per-core -x \\; -a -e event_a work": per_core_output,
             (
-                "sudo perf stat --per-core -x \\; -a "
-                "-e event_a -e event_b work"
+                "sudo perf stat --per-core -x \\; -a -e event_a -e event_b work"
             ): per_core_output,
             "sudo perf stat -a -e event_a work": "123 event_a\n",
         },
     )
 
-    assert perf_sample.perf_sample_per_core_event("work", "event_a", 0) == {
-        "0": 10
-    }
+    assert perf_sample.perf_sample_per_core_event("work", "event_a", 0) == {"0": 10}
     assert perf_sample.perf_sample_per_core_events(
         "work", ["event_a", "event_b"], 0
     ) == {"event_a": {"0": 10}, "event_b": {"0": 20}}
-    assert perf_sample.perf_sample_core_events(
-        "work", ["event_a"], flags=["a"]
-    ) == {"event_a": 123}
+    assert perf_sample.perf_sample_core_events("work", ["event_a"], flags=["a"]) == {
+        "event_a": 123
+    }
+
+
+def test_perf_sample_periodic_core_events(monkeypatch):
+    cmd = "perf stat -x \\; -I 100 -a -e event_a -e event_b work"
+    stub_run_command_read_stderr(
+        monkeypatch,
+        perf_sample,
+        {cmd: ("0.100;10;;event_a;100.00;100.00\n0.100;20;;event_b;100.00;100.00\n")},
+    )
+
+    assert perf_sample.perf_sample_periodic_core_events(
+        "work", ["event_a", "event_b"], 100, sudo=False, flags=["a"]
+    ) == {"event_a": [(0.1, 10)], "event_b": [(0.1, 20)]}
 
 
 def test_perf_sample_intel_stderr_caller(monkeypatch):
@@ -114,6 +120,6 @@ def test_perf_sample_intel_stderr_caller(monkeypatch):
         {cmd: "42 uncore_cha_0/event=0xb3,umask=0x1/\n"},
     )
 
-    assert perf_sample_intel.perf_sample_uncore_event_many(
-        "work", [("0xb3", "1")]
-    ) == {"0xb3": {"0": 42}}
+    assert perf_sample_intel.perf_sample_uncore_event_many("work", [("0xb3", "1")]) == {
+        "0xb3": {"0": 42}
+    }

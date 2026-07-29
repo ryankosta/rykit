@@ -8,11 +8,7 @@ def test_show_numactl(monkeypatch):
     stub_run_command_read_stdout(
         monkeypatch,
         numa_tools,
-        {
-            "numactl --show": (
-                "policy: bind\ncpubind: 1\nnodebind: 1\nmembind: 3\n"
-            )
-        },
+        {"numactl --show": ("policy: bind\ncpubind: 1\nnodebind: 1\nmembind: 3\n")},
     )
 
     assert numa_tools.show_numactl() == {
