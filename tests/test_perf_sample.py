@@ -5,6 +5,7 @@ from rykit.perf_sample import (
     add_zeroes_to_eventcode,
     interpret_core_events,
     interpret_per_core_event,
+    interpret_periodic_core_events,
     interpret_umask,
 )
 
@@ -50,6 +51,22 @@ def test_interpret_core_events():
     output_bytes = "  12,345 Byte events_d"
     res_bytes = interpret_core_events(output_bytes, ["events_d"])
     assert res_bytes["events_d"] == int(12345 / 64)
+
+
+def test_interpret_periodic_core_events():
+    output = (
+        "0.100;1,234;;events_a;100.00;100.00\n"
+        "0.100;567;;events_b;100.00;100.00\n"
+        "0.200;2,345;;events_a;100.00;100.00\n"
+        "0.200;<not counted>;;events_b;0.00;0.00\n"
+    )
+
+    assert interpret_periodic_core_events(
+        output, ["events_a", "events_b"]
+    ) == {
+        "events_a": [(0.1, 1234), (0.2, 2345)],
+        "events_b": [(0.1, 567)],
+    }
 
 
 def test_interpret_per_core_event():

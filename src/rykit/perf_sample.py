@@ -246,6 +246,33 @@ def interpret_core_events(output: str, core_events: List[str]) -> Dict[str, int]
     return res
 
 
+def interpret_periodic_core_events(
+    output: str, core_events: List[str]
+) -> Dict[str, List[Tuple[float, int]]]:
+    """Parse interval-mode perf output for core events.
+
+    Args:
+        output (str): Raw stderr output from ``perf stat -I -x``.
+        core_events (List[str]): List of event names to extract.
+
+    Returns:
+        Dict[str, List[Tuple[float, int]]]: Mapping of event name to
+            ``(time_seconds, counter)`` samples.
+    """
+    res: Dict[str, List[Tuple[float, int]]] = {event: [] for event in core_events}
+    for line in output.split("\n"):
+        fields = [field.strip() for field in line.split(";")]
+        if len(fields) < 4 or fields[3] not in res:
+            continue
+        try:
+            timestamp = float(fields[0])
+            counter = int(fields[1].replace(",", ""))
+        except ValueError:
+            continue
+        res[fields[3]].append((timestamp, counter))
+    return res
+
+
 def interpret_per_core_event(output: str, event: str, socket: int) -> Dict[str, int]:
     """Parse perf per-core stat output to extract the event counters for a given socket.
 
@@ -370,6 +397,37 @@ def perf_sample_core_events(
         full_cmd = "sudo " + full_cmd
     output = run_command_read_stderr(full_cmd)
     return interpret_core_events(output, core_events)
+
+
+def perf_sample_periodic_core_events(
+    cmd: str,
+    core_events: List[str],
+    interval_ms: int,
+    sudo: bool = True,
+    flags: List[str] = [],
+) -> Dict[str, List[Tuple[float, int]]]:
+    """Periodically sample core events while running a command.
+
+    Args:
+        cmd (str): Command to run under perf.
+        core_events (List[str]): List of core event names.
+        interval_ms (int): Sampling interval in milliseconds.
+        sudo (bool): Whether to run command as sudo.
+        flags (List[str]): List of flags to pass.
+
+    Returns:
+        Dict[str, List[Tuple[float, int]]]: Periodic samples for each event.
+    """
+    assert interval_ms > 0
+    event_flag_str = " ".join([f"-e {event}" for event in core_events])
+    flag_str = " ".join([f"-{flag}" for flag in flags])
+    full_cmd = (
+        f"perf stat -x \\; -I {interval_ms} {flag_str} {event_flag_str} {cmd}"
+    )
+    if sudo:
+        full_cmd = "sudo " + full_cmd
+    output = run_command_read_stderr(full_cmd)
+    return interpret_periodic_core_events(output, core_events)
 
 
 def perf_sample_core_events_reentrant(

@@ -105,6 +105,24 @@ def test_perf_sample_stderr_callers(monkeypatch):
     ) == {"event_a": 123}
 
 
+def test_perf_sample_periodic_core_events(monkeypatch):
+    cmd = "perf stat -x \\; -I 100 -a -e event_a -e event_b work"
+    stub_run_command_read_stderr(
+        monkeypatch,
+        perf_sample,
+        {
+            cmd: (
+                "0.100;10;;event_a;100.00;100.00\n"
+                "0.100;20;;event_b;100.00;100.00\n"
+            )
+        },
+    )
+
+    assert perf_sample.perf_sample_periodic_core_events(
+        "work", ["event_a", "event_b"], 100, sudo=False, flags=["a"]
+    ) == {"event_a": [(0.1, 10)], "event_b": [(0.1, 20)]}
+
+
 def test_perf_sample_intel_stderr_caller(monkeypatch):
     monkeypatch.setattr(perf_sample_intel, "get_cha_count", lambda: 1)
     cmd = "sudo perf stat -a -e uncore_cha_0/event=0xb3,umask=0x1/ -- work"
