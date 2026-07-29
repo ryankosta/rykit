@@ -13,3 +13,22 @@ def show_numactl() -> Dict[str, List[str]]:
         val_list = val.strip().split(" ")
         res[field] = val_list
     return res
+
+
+def assert_numactl_bind(cpu_node: int, mem_node: int) -> None:
+    """Assert that the process is bound to the expected NUMA nodes.
+
+    Args:
+        cpu_node (int): Expected CPU NUMA node.
+        mem_node (int): Expected memory NUMA node.
+
+    Raises:
+        AssertionError: If the CPU or memory binding does not match.
+    """
+    bindings = show_numactl()
+    assert bindings["cpubind"] == [str(cpu_node)], (
+        f"expected CPU NUMA node {cpu_node}, got {bindings['cpubind']}"
+    )
+    assert bindings["membind"] == [str(mem_node)], (
+        f"expected memory NUMA node {mem_node}, got {bindings['membind']}"
+    )
