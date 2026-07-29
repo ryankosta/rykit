@@ -23,6 +23,28 @@ def test_show_numactl(monkeypatch):
     }
 
 
+def test_get_numactl_bound_nodes(monkeypatch):
+    monkeypatch.setattr(
+        numa_tools,
+        "show_numactl",
+        lambda: {"cpubind": ["1"], "membind": ["3"]},
+    )
+
+    assert numa_tools.get_numactl_bound_cpu() == 1
+    assert numa_tools.get_numactl_bound_mem() == 3
+
+
+def test_get_numactl_bound_nodes_returns_none_for_multiple_nodes(monkeypatch):
+    monkeypatch.setattr(
+        numa_tools,
+        "show_numactl",
+        lambda: {"cpubind": ["0", "1"], "membind": ["2", "3"]},
+    )
+
+    assert numa_tools.get_numactl_bound_cpu() is None
+    assert numa_tools.get_numactl_bound_mem() is None
+
+
 def test_assert_numactl_bind(monkeypatch):
     monkeypatch.setattr(
         numa_tools,
