@@ -39,7 +39,7 @@ def run_command_read_stderr(cmd: str, log_err_always: bool = False) -> str:
     Returns:
         str: The stderr output of the command (perf writes stats here).
     """
-    print(f"running cmd: {cmd}")
+    logger.info("running cmd: %s", cmd)
     result = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -65,7 +65,7 @@ def run_command_read_stdout(cmd: str, log_err_always: bool = True) -> str:
     Returns:
         str: The stdout output of the command.
     """
-    print(f"running cmd: {cmd}")
+    logger.info("running cmd: %s", cmd)
     result = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -93,7 +93,7 @@ def run_command_read_stdout_start(cmd: str) -> Cmd:
     Returns:
         Cmd: object to use for later reading command output
     """
-    print(f"running cmd (in background): {cmd}")
+    logger.info("running cmd (in background): %s", cmd)
     proc = subprocess.Popen(
         cmd,
         shell=True,
