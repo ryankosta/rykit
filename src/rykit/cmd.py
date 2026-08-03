@@ -1,11 +1,19 @@
-"""Provides tools to launch shell commands and read their string output."""
+"""Provide tools to launch shell commands and read their string output."""
 
+import logging
 import subprocess
 from typing import List, Tuple
 
+logger = logging.getLogger(__name__)
 
-def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
-    if code == 124:  # 124 is timeout exit code
+
+def _check_return_code(
+    stderr: str,
+    code: int,
+    verbose: bool = False,
+    log_err_always: bool = False,
+) -> None:
+    if code == 124:  # GNU timeout uses exit code 124 when the command times out.
         if verbose:
             print("Command timed out as expected.")
     elif code == 0:
@@ -13,47 +21,62 @@ def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
             print("Command returned 0")
     else:
         print("\n\n=== STDERR")
+        logger.error("Command stderr: %s", stderr)
         print(stderr)
         print("===\n\n")
         raise ValueError(f"Command failed with exit code {code}.")
+    if log_err_always and stderr:
+        logger.warning("Command stderr: %s", stderr)
 
 
-def run_command_read_stderr(cmd: str) -> str:
+def run_command_read_stderr(cmd: str, log_err_always: bool = False) -> str:
     """Run a shell command and capture stderr output.
 
     Args:
         cmd (str): The shell command to execute.
+        log_err_always (bool): Whether to log nonempty stderr for successful commands.
 
     Returns:
         str: The stderr output of the command (perf writes stats here).
     """
-    print(f"running cmd: {cmd}")
+    logger.info("running cmd: %s", cmd)
     result = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
     output: str = result.stderr  # perf outputs stats to stderr
 
-    _check_return_code(output, result.returncode, True)
+    _check_return_code(
+        output,
+        result.returncode,
+        verbose=True,
+        log_err_always=log_err_always,
+    )
 
     return output
 
 
-def run_command_read_stdout(cmd: str) -> str:
+def run_command_read_stdout(cmd: str, log_err_always: bool = True) -> str:
     """Run a shell command and capture stdout output.
 
     Args:
         cmd (str): The shell command to execute.
+        log_err_always (bool): Whether to log nonempty stderr for successful commands.
 
     Returns:
-        str: The stderr output of the command (perf writes stats here).
+        str: The stdout output of the command.
     """
-    print(f"running cmd: {cmd}")
+    logger.info("running cmd: %s", cmd)
     result = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
     output: str = result.stdout
 
-    _check_return_code(result.stderr, result.returncode)
+    _check_return_code(
+        result.stderr,
+        result.returncode,
+        verbose=False,
+        log_err_always=log_err_always,
+    )
 
     return output
 
@@ -70,7 +93,7 @@ def run_command_read_stdout_start(cmd: str) -> Cmd:
     Returns:
         Cmd: object to use for later reading command output
     """
-    print(f"running cmd (in background): {cmd}")
+    logger.info("running cmd (in background): %s", cmd)
     proc = subprocess.Popen(
         cmd,
         shell=True,
