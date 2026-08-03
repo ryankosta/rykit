@@ -311,7 +311,6 @@ def stop_profile_msr(proc_data: Cmd) -> pd.DataFrame:
     """Stops the active MSR profiling process and returns parsed DataFrame."""
     res = run_command_read_stdout_finish(proc_data)
     # remove first line
-    print(res)
     res = "\n".join(res.strip().splitlines()[1:])
 
     df = pd.read_csv(io.StringIO(res), header=None, names=["cpu", "msr", "val"])
