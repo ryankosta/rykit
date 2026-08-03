@@ -2,9 +2,12 @@
 
 import subprocess
 from typing import List, Tuple
+import logging
 
 
-def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
+def _check_return_code(stderr: str, code: int, verbose: bool = False,
+                       log_err_always : bool = False) -> None:
+    failure = False
     if code == 124:  # 124 is timeout exit code
         if verbose:
             print("Command timed out as expected.")
@@ -13,12 +16,15 @@ def _check_return_code(stderr: str, code: int, verbose: bool = False) -> None:
             print("Command returned 0")
     else:
         print("\n\n=== STDERR")
+        logging.error(stderr)
         print(stderr)
         print("===\n\n")
         raise ValueError(f"Command failed with exit code {code}.")
+    if log_err_always:
+        logging.warn(stderr)
 
 
-def run_command_read_stderr(cmd: str) -> str:
+def run_command_read_stderr(cmd: str,log_err_always:bool=False) -> str:
     """Run a shell command and capture stderr output.
 
     Args:
@@ -33,12 +39,13 @@ def run_command_read_stderr(cmd: str) -> str:
     )
     output: str = result.stderr  # perf outputs stats to stderr
 
-    _check_return_code(output, result.returncode, True)
+    _check_return_code(output, result.returncode, verbose=True,
+                       log_err_always=log_err_always)
 
     return output
 
 
-def run_command_read_stdout(cmd: str) -> str:
+def run_command_read_stdout(cmd: str, log_err_always:bool=True) -> str:
     """Run a shell command and capture stdout output.
 
     Args:
@@ -53,7 +60,8 @@ def run_command_read_stdout(cmd: str) -> str:
     )
     output: str = result.stdout
 
-    _check_return_code(result.stderr, result.returncode)
+    _check_return_code(result.stderr, result.returncode,verbose=False,
+                       log_err_always=log_err_always)
 
     return output
 
